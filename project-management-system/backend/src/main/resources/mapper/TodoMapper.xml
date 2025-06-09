@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.projectmanagement.mapper.TodoMapper">
+
+    <!-- 完整的Todo结果映射 -->
+    <resultMap id="TodoWithDetails" type="com.projectmanagement.entity.Todo">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="project_id" property="projectId"/>
+        <result column="assignee_id" property="assigneeId"/>
+        <result column="priority" property="priority"/>
+        <result column="status" property="status"/>
+        <result column="due_date" property="dueDate"/>
+        <result column="completed_time" property="completedTime"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        
+        <!-- 关联的项目信息 -->
+        <association property="project" javaType="com.projectmanagement.entity.Project">
+            <id column="project_id" property="id"/>
+            <result column="project_name" property="name"/>
+        </association>
+        
+        <!-- 关联的负责人信息 -->
+        <association property="assignee" javaType="com.projectmanagement.entity.User">
+            <id column="assignee_id" property="id"/>
+            <result column="assignee_username" property="username"/>
+            <result column="assignee_nickname" property="nickname"/>
+            <result column="assignee_email" property="email"/>
+        </association>
+        
+        <!-- 关联的创建者信息 -->
+        <association property="creator" javaType="com.projectmanagement.entity.User">
+            <id column="creator_id" property="id"/>
+            <result column="creator_username" property="username"/>
+            <result column="creator_nickname" property="nickname"/>
+        </association>
+    </resultMap>
+
+    <!-- 查询待办任务列表并关联项目和用户信息 -->
+    <select id="selectTodosWithDetails" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email,
+            u2.username as creator_username, u2.nickname as creator_nickname
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        LEFT JOIN users u2 ON t.creator_id = u2.id
+        ORDER BY t.due_date ASC, t.priority DESC
+    </select>
+
+    <!-- 查询今日待办任务 -->
+    <select id="selectTodayTodos" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE DATE(t.due_date) = CURDATE() AND t.status != 'DONE'
+        ORDER BY t.due_date ASC
+    </select>
+
+    <!-- 查询用户的今日待办任务 -->
+    <select id="selectTodayTodosByUserId" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.assignee_id = #{userId} 
+        AND DATE(t.due_date) = CURDATE() 
+        AND t.status != 'DONE'
+        ORDER BY t.due_date ASC
+    </select>
+
+    <!-- 查询本周待办任务 -->
+    <select id="selectWeekTodos" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE WEEK(t.due_date) = WEEK(NOW()) AND YEAR(t.due_date) = YEAR(NOW())
+        AND t.status != 'DONE'
+        ORDER BY t.due_date ASC
+    </select>
+
+    <!-- 查询用户的本周待办任务 -->
+    <select id="selectWeekTodosByUserId" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.assignee_id = #{userId}
+        AND WEEK(t.due_date) = WEEK(NOW()) 
+        AND YEAR(t.due_date) = YEAR(NOW())
+        AND t.status != 'DONE'
+        ORDER BY t.due_date ASC
+    </select>
+
+    <!-- 查询用户的待办任务 -->
+    <select id="selectTodosByUserId" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.assignee_id = #{userId} AND t.status != 'DONE'
+        ORDER BY t.due_date ASC
+    </select>
+
+    <!-- 查询即将到期的任务（指定天数内到期） -->
+    <select id="selectTasksNearDeadline" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.due_date IS NOT NULL 
+        AND t.due_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL #{daysAhead} DAY)
+        AND t.status != 'DONE'
+        AND t.assignee_id IS NOT NULL
+        ORDER BY t.due_date ASC, t.priority DESC
+    </select>
+
+    <!-- 查询指定天数后到期的任务（正好是第N天到期） -->
+    <select id="selectTasksForSpecificDay" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.due_date IS NOT NULL 
+        AND DATE(t.due_date) = DATE_ADD(CURDATE(), INTERVAL #{daysAfter} DAY)
+        AND t.status != 'DONE'
+        AND t.assignee_id IS NOT NULL
+        ORDER BY t.priority DESC
+    </select>
+
+    <!-- 查询已逾期的任务 -->
+    <select id="selectOverdueTasks" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.due_date IS NOT NULL 
+        AND t.due_date &lt; CURDATE()
+        AND t.status != 'DONE'
+        AND t.assignee_id IS NOT NULL
+        ORDER BY t.due_date ASC, t.priority DESC
+    </select>
+
+    <!-- 查询高优先级待办任务 -->
+    <select id="selectHighPriorityTodos" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.priority = 'HIGH'   
+        AND t.status != 'DONE'
+        AND t.assignee_id IS NOT NULL
+        ORDER BY t.due_date ASC, t.priority DESC
+    </select>
+
+    <!-- 查询高优先级待办任务（按用户过滤） -->
+    <select id="selectHighPriorityTodosByUserId" resultMap="TodoWithDetails">
+        SELECT 
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,  
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        WHERE t.priority = 'HIGH'   
+        AND t.assignee_id = #{userId}
+        AND t.status != 'DONE'
+        AND t.assignee_id IS NOT NULL
+        ORDER BY t.due_date ASC, t.priority DESC
+    </select>   
+
+</mapper> 
