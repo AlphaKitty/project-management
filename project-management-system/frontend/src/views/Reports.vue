@@ -170,13 +170,13 @@ const generateForm = ref<ReportDTO>({
 
 // 表格列配置
 const columns = [
-  { title: '报告标题', dataIndex: 'title', key: 'title' },
-  { title: '类型', dataIndex: 'type', key: 'type', slotName: 'type' },
-  { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project' },
-  { title: '创建人', dataIndex: 'creator', key: 'creator', slotName: 'creator' },
-  { title: '报告日期', dataIndex: 'reportDate', key: 'reportDate' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime' },
-  { title: '操作', key: 'actions', slotName: 'actions', width: 200 }
+  { title: '报告标题', dataIndex: 'title', key: 'title', align: 'center' },
+  { title: '类型', dataIndex: 'type', key: 'type', slotName: 'type', align: 'center' },
+  { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project', align: 'center' },
+  { title: '创建人', dataIndex: 'creator', key: 'creator', slotName: 'creator', align: 'center' },
+  { title: '报告日期', dataIndex: 'reportDate', key: 'reportDate', align: 'center' },
+  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', align: 'center' },
+  { title: '操作', key: 'actions', slotName: 'actions', width: 200, align: 'center' }
 ]
 
 // 按类型分类的报告

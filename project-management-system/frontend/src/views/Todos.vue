@@ -41,12 +41,11 @@
         <!-- 快捷筛选 -->
         <div class="filter-tabs">
             <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
-                <a-tab-pane key="all" title="全部任务" />
-                <a-tab-pane key="today" title="今日任务" />
-                <a-tab-pane key="week" title="本周任务" />
                 <a-tab-pane key="high" title="高优先级" />
                 <a-tab-pane key="overdue" title="已逾期任务" />
+                <a-tab-pane key="pending" title="未完成任务" />
                 <a-tab-pane key="completed" title="已完成任务" />
+                <a-tab-pane key="all" title="全部任务" />
             </a-tabs>
         </div>
 
@@ -159,9 +158,9 @@
             @cancel="sendEmailModal = false" width="800px"> <a-form layout="vertical"> <a-form-item label="邮件发送说明">
                     <a-alert type="info" show-icon> <template #title>邮件将自动发送给待办任务的责任人</template>
                         系统将根据所选范围内的待办任务，自动向每个任务的责任人发送邮件提醒。
-                    </a-alert> </a-form-item> <a-form-item label="发送范围"> <a-radio-group v-model="emailForm.scope"
+                    </a-alert> </a-form-item>                 <a-form-item label="发送范围"> <a-radio-group v-model="emailForm.scope"
                         @change="updateEmailTodoList"> <a-radio value="all">所有待办任务</a-radio> <a-radio
-                            value="today">今日任务</a-radio> <a-radio value="week">本周任务</a-radio> </a-radio-group>
+                            value="pending">未完成任务</a-radio> <a-radio value="high">高优先级</a-radio> </a-radio-group>
                 </a-form-item>
                 <a-form-item label="邮件发送预览">
                     <div class="email-preview">
@@ -207,7 +206,7 @@ const userStore = useUserStore()
 const modalVisible = ref(false)
 const sendEmailModal = ref(false)
 const isEdit = ref(false)
-const activeTab = ref('all')
+const activeTab = ref('high')
 const selectedProjectId = ref<number | undefined>(undefined)
 const formRef = ref()
 const userSearchText = ref('')
@@ -238,7 +237,7 @@ const formData = ref<TodoDTO>({
 })
 
 const emailForm = ref({
-    scope: 'all'
+    scope: 'pending'
 })
 
 // 获取唯一的责任人列表
@@ -277,25 +276,25 @@ const formRules = {
 // 表格列配置
 const columns = [
     { title: '任务标题', dataIndex: 'title', key: 'title', slotName: 'title', width: 200 },
-    { title: '优先级', dataIndex: 'priority', key: 'priority', slotName: 'priority' },
-    { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status' },
-    { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project', width: 200 },
-    { title: '负责人', dataIndex: 'assignee', key: 'assignee', slotName: 'assignee' },
-    { title: '截止日期', dataIndex: 'dueDate', key: 'dueDate' },
-    { title: '操作', key: 'actions', slotName: 'actions', width: 200 }
+    { title: '优先级', dataIndex: 'priority', key: 'priority', slotName: 'priority', align: 'center' },
+    { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', align: 'center' },
+    { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project', width: 200, align: 'center' },
+    { title: '负责人', dataIndex: 'assignee', key: 'assignee', slotName: 'assignee', align: 'center' },
+    { title: '截止日期', dataIndex: 'dueDate', key: 'dueDate', align: 'center' },
+    { title: '操作', key: 'actions', slotName: 'actions', width: 200, align: 'center' }
 ]
 
 // 当前显示的任务列表（结合标签页和项目筛选）
 const currentTodos = computed(() => {
     switch (activeTab.value) {
-        case 'today':
-            return todoStore.todayTodos
-        case 'week':
-            return todoStore.weekTodos
         case 'high':
-            return todoStore.highPriorityTodos
+            // 高优先级：只显示未完成的高优先级任务
+            return todoStore.highPriorityTodos.filter(todo => todo.status !== 'DONE')
         case 'overdue':
             return todoStore.overdueTodos
+        case 'pending':
+            // 未完成任务：合并今日任务和本周任务，包含所有非完成状态的任务
+            return todoStore.todos.filter(todo => todo.status !== 'DONE')
         case 'completed':
             return todoStore.completedTodos
         default:
@@ -706,11 +705,13 @@ const handleCancel = () => {
 const updateEmailTodoList = () => {
     const todos = todoStore.todos.filter(todo => todo.status !== 'DONE')
     switch (emailForm.value.scope) {
-        case 'today':
-            emailTodoList.value = todoStore.todayTodos.filter(todo => todo.status !== 'DONE')
+        case 'pending':
+            // 未完成任务：所有非完成状态的任务
+            emailTodoList.value = todos
             break
-        case 'week':
-            emailTodoList.value = todoStore.weekTodos.filter(todo => todo.status !== 'DONE')
+        case 'high':
+            // 高优先级未完成任务
+            emailTodoList.value = todoStore.highPriorityTodos.filter(todo => todo.status !== 'DONE')
             break
         default:
             emailTodoList.value = todos
