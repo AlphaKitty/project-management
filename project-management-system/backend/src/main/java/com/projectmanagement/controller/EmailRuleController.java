@@ -2,6 +2,7 @@ package com.projectmanagement.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.projectmanagement.common.Result;
+import com.projectmanagement.common.ResultCode;
 import com.projectmanagement.dto.EmailRuleDTO;
 import com.projectmanagement.dto.UserEmailPreferenceDTO;
 import com.projectmanagement.entity.EmailSendRule;
@@ -56,7 +57,7 @@ public class EmailRuleController {
     public Result<String> createEmailRule(@RequestBody EmailRuleDTO emailRuleDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         boolean success = emailRuleService.createEmailRule(emailRuleDTO, currentUser.getId());
@@ -114,7 +115,7 @@ public class EmailRuleController {
     public Result<UserEmailPreference> getUserEmailPreference(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         UserEmailPreference preference = emailRuleService.getUserEmailPreference(currentUser.getId());
@@ -129,7 +130,7 @@ public class EmailRuleController {
             HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         boolean success = emailRuleService.updateUserEmailPreference(currentUser.getId(), preferenceDTO);

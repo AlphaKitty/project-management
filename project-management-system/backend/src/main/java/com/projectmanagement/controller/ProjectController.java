@@ -1,6 +1,7 @@
 package com.projectmanagement.controller;
 
 import com.projectmanagement.common.Result;
+import com.projectmanagement.common.ResultCode;
 import com.projectmanagement.dto.ProjectDTO;
 import com.projectmanagement.entity.Project;
 import com.projectmanagement.entity.User;
@@ -26,7 +27,7 @@ public class ProjectController {
     public Result<List<Project>> getProjectList(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         // 只返回当前用户作为创建人或责任人的项目
@@ -38,7 +39,7 @@ public class ProjectController {
     public Result<Project> getProjectDetail(@PathVariable Long id, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         Project project = projectService.getProjectDetail(id);
@@ -59,7 +60,7 @@ public class ProjectController {
     public Result<Project> createProject(@Validated @RequestBody ProjectDTO projectDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         // 设置创建人为当前用户
@@ -73,7 +74,7 @@ public class ProjectController {
             HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         // 检查权限：只有创建人可以编辑项目
@@ -94,7 +95,7 @@ public class ProjectController {
     public Result<String> deleteProject(@PathVariable Long id, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("请先登录");
+            return Result.unauthorized();
         }
 
         // 检查权限：只有创建人可以删除项目
@@ -127,5 +128,19 @@ public class ProjectController {
     public Result<String> removeMember(@PathVariable Long id, @PathVariable Long userId) {
         boolean success = projectService.removeProjectMember(id, userId);
         return success ? Result.success("成员移除成功") : Result.error("成员移除失败");
+    }
+
+    /**
+     * 获取项目概览（按创建时间排序）
+     */
+    @GetMapping("/overview")
+    public Result<List<Project>> getProjectOverview(HttpSession session) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.unauthorized();
+        }
+
+        List<Project> projects = projectService.getProjectOverview();
+        return Result.success(projects);
     }
 }

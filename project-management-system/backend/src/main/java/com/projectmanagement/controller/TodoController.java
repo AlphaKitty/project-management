@@ -1,6 +1,7 @@
 package com.projectmanagement.controller;
 
 import com.projectmanagement.common.Result;
+import com.projectmanagement.common.ResultCode;
 import com.projectmanagement.dto.TodoDTO;
 import com.projectmanagement.entity.Todo;
 import com.projectmanagement.entity.User;
@@ -33,7 +34,7 @@ public class TodoController {
     public Result<List<Todo>> getTodoList(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         List<Todo> todos;
@@ -51,7 +52,7 @@ public class TodoController {
     public Result<List<Todo>> getTodayTodos(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         List<Todo> todos;
@@ -69,7 +70,7 @@ public class TodoController {
     public Result<List<Todo>> getWeekTodos(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         List<Todo> todos;
@@ -87,7 +88,7 @@ public class TodoController {
     public Result<List<Todo>> getHighPriorityTodos(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         List<Todo> todos;
@@ -117,7 +118,7 @@ public class TodoController {
     public Result<Todo> createTodo(@Validated @RequestBody TodoDTO todoDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         log.info("=== 创建新任务 ===");
@@ -155,7 +156,7 @@ public class TodoController {
             @Validated @RequestBody TodoDTO todoDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         // 获取原始任务信息
@@ -190,7 +191,7 @@ public class TodoController {
     public Result<String> deleteTodo(@PathVariable Long id, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         // 权限检查：只有barlin.zhang可以删除任务
@@ -245,7 +246,7 @@ public class TodoController {
             HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.error("用户未登录");
+            return Result.unauthorized();
         }
 
         // 只有barlin.zhang可以执行测试

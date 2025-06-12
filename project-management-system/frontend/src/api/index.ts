@@ -7,6 +7,11 @@ export const projectApi = {
     return request.get("/projects");
   },
 
+  // 获取项目概览
+  getProjectOverview() {
+    return request.get("/projects/overview");
+  },
+
   // 获取项目详情
   getProject(id: number) {
     return request.get(`/projects/${id}`);

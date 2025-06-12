@@ -158,7 +158,7 @@
             @cancel="sendEmailModal = false" width="800px"> <a-form layout="vertical"> <a-form-item label="邮件发送说明">
                     <a-alert type="info" show-icon> <template #title>邮件将自动发送给待办任务的责任人</template>
                         系统将根据所选范围内的待办任务，自动向每个任务的责任人发送邮件提醒。
-                    </a-alert> </a-form-item>                 <a-form-item label="发送范围"> <a-radio-group v-model="emailForm.scope"
+                    </a-alert> </a-form-item> <a-form-item label="发送范围"> <a-radio-group v-model="emailForm.scope"
                         @change="updateEmailTodoList"> <a-radio value="all">所有待办任务</a-radio> <a-radio
                             value="pending">未完成任务</a-radio> <a-radio value="high">高优先级</a-radio> </a-radio-group>
                 </a-form-item>

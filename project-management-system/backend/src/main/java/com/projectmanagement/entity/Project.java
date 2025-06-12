@@ -25,6 +25,13 @@ public class Project extends BaseEntity {
     private Long creatorId;
     private Long assigneeId;
 
+    /**
+     * 里程碑节点，JSON格式存储
+     * 格式: [{"name": "需求分析", "status": "COMPLETED", "dueDate": "2024-01-15",
+     * "description": "完成需求分析"}]
+     */
+    private String milestones;
+
     @TableField(exist = false)
     private List<User> members;
 

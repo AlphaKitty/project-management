@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Message } from "@arco-design/web-vue";
 
 // API响应数据结构
 export interface ApiResponse<T = any> {
@@ -6,6 +7,9 @@ export interface ApiResponse<T = any> {
   msg: string;
   data: T;
 }
+
+// 标志位，防止多次触发登录过期处理
+let isHandlingAuth = false;
 
 // 创建axios实例
 const request = axios.create({
@@ -20,6 +24,13 @@ const request = axios.create({
 request.interceptors.request.use(
   (config) => {
     console.log("请求发送:", config.method?.toUpperCase(), config.url);
+
+    // 添加认证token到请求头
+    const token = localStorage.getItem("auth-token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
     return config;
   },
   (error) => {
@@ -36,6 +47,29 @@ request.interceptors.response.use(
     // 检查业务状态码
     if (data.code === 0) {
       return data;
+    } else if (data.code === 401) {
+      // 登录过期，清除本地存储并跳转到登录页
+
+      // 防止多次触发
+      if (!isHandlingAuth) {
+        isHandlingAuth = true;
+
+        localStorage.removeItem("auth-token");
+        localStorage.removeItem("current-user");
+
+        // 显示登录过期提示
+        Message.error({
+          content: "登录过期，请重新登录",
+          duration: 2000,
+        });
+
+        // 延迟跳转到登录页
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 2000);
+      }
+
+      throw new Error("登录过期，请重新登录");
     } else {
       console.error("业务错误:", data.msg);
       throw new Error(data.msg || "请求失败");
@@ -51,7 +85,27 @@ request.interceptors.response.use(
           message = "请求参数错误";
           break;
         case 401:
-          message = "未授权，请登录";
+          // HTTP 401状态码，也是登录过期
+          message = "登录过期，请重新登录";
+
+          // 防止多次触发
+          if (!isHandlingAuth) {
+            isHandlingAuth = true;
+
+            localStorage.removeItem("auth-token");
+            localStorage.removeItem("current-user");
+
+            // 显示登录过期提示
+            Message.error({
+              content: "登录过期，请重新登录",
+              duration: 2000,
+            });
+
+            // 延迟跳转到登录页
+            setTimeout(() => {
+              window.location.href = "/login";
+            }, 2000);
+          }
           break;
         case 403:
           message = "禁止访问";

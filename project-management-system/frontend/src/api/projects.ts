@@ -9,6 +9,11 @@ export const projectApi = {
     return request.get("/projects");
   },
 
+  // 获取项目概览
+  getProjectOverview(): Promise<ApiResponse<Project[]>> {
+    return request.get("/projects/overview");
+  },
+
   // 获取项目详情
   getProject(id: number): Promise<ApiResponse<Project>> {
     return request.get(`/projects/${id}`);

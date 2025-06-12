@@ -144,6 +144,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         project.setProgress(projectDTO.getProgress() != null ? projectDTO.getProgress() : 0);
         project.setCreatorId(projectDTO.getCreatorId());
         project.setAssigneeId(projectDTO.getAssigneeId());
+        project.setMilestones(projectDTO.getMilestones());
         projectMapper.insert(project);
 
         // 添加项目成员
@@ -170,6 +171,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         project.setStartDate(projectDTO.getStartDate());
         project.setEndDate(projectDTO.getEndDate());
         project.setProgress(projectDTO.getProgress());
+        project.setMilestones(projectDTO.getMilestones());
 
         projectMapper.updateById(project);
         return getProjectDetail(projectId);
@@ -211,10 +213,52 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     @Transactional
     public boolean updateProjectProgress(Long projectId, Integer progress) {
         Project project = projectMapper.selectById(projectId);
-        if (project != null) {
-            project.setProgress(progress);
-            return projectMapper.updateById(project) > 0;
+        if (project == null) {
+            return false;
         }
-        return false;
+        project.setProgress(progress);
+        return projectMapper.updateById(project) > 0;
+    }
+
+    @Override
+    public List<Project> getProjectOverview() {
+        // 获取所有项目，按创建时间排序
+        List<Project> projects = projectMapper.selectProjectsOrderByCreateTime();
+
+        if (projects.isEmpty()) {
+            return projects;
+        }
+
+        // 收集所有需要查询的用户ID
+        Set<Long> userIds = new HashSet<>();
+        for (Project project : projects) {
+            if (project.getCreatorId() != null) {
+                userIds.add(project.getCreatorId());
+            }
+            if (project.getAssigneeId() != null) {
+                userIds.add(project.getAssigneeId());
+            }
+        }
+
+        // 批量查询用户信息
+        Map<Long, User> userMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<User> users = userMapper.selectBatchIds(userIds);
+            for (User user : users) {
+                userMap.put(user.getId(), user);
+            }
+        }
+
+        // 设置creator和assignee对象
+        for (Project project : projects) {
+            if (project.getCreatorId() != null) {
+                project.setCreator(userMap.get(project.getCreatorId()));
+            }
+            if (project.getAssigneeId() != null) {
+                project.setAssignee(userMap.get(project.getAssigneeId()));
+            }
+        }
+
+        return projects;
     }
 }

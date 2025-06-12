@@ -25,7 +25,7 @@ public interface ProjectMapper extends BaseMapper<Project> {
          */
         @Select("SELECT * FROM projects " +
                         "WHERE creator_id = #{userId} OR assignee_id = #{userId} " +
-                        "ORDER BY create_time DESC")
+                        "ORDER BY create_time ASC")
         List<Project> selectProjectsByCreatorOrAssignee(@Param("userId") Long userId);
 
         /**
@@ -42,4 +42,10 @@ public interface ProjectMapper extends BaseMapper<Project> {
                         "WHERE pm.user_id = #{userId} " +
                         "ORDER BY p.create_time DESC")
         List<Project> selectProjectsByUserId(@Param("userId") Long userId);
+
+        /**
+         * 查询项目概览列表（按创建时间排序）
+         */
+        @Select("SELECT * FROM projects ORDER BY create_time")
+        List<Project> selectProjectsOrderByCreateTime();
 }

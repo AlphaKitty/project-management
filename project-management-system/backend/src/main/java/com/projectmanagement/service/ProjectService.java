@@ -60,4 +60,9 @@ public interface ProjectService extends IService<Project> {
      * 更新项目进度
      */
     boolean updateProjectProgress(Long projectId, Integer progress);
+
+    /**
+     * 获取项目概览（按创建时间排序）
+     */
+    List<Project> getProjectOverview();
 }

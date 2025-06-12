@@ -32,12 +32,12 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/project_management?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: nullnull
-    # url: jdbc:mysql://10.10.41.231:3306/ext?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    # username: ext
-    # password: ext
+    url: jdbc:mysql://10.10.41.231:3306/ext?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ext
+    password: ext
+    # url: jdbc:mysql://localhost:3306/project_management?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    # username: root
+    # password: nullnull
     druid:
       # 连接池配置
       initial-size: 5

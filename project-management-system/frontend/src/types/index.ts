@@ -11,6 +11,15 @@ export interface User {
   updateTime: string;
 }
 
+// 里程碑信息
+export interface Milestone {
+  name: string;
+  status: "PENDING" | "PROGRESS" | "COMPLETED";
+  dueDate?: string;
+  description?: string;
+  completedDate?: string;
+}
+
 // 项目信息
 export interface Project {
   id: number;
@@ -22,12 +31,15 @@ export interface Project {
   progress: number;
   creatorId: number;
   assigneeId?: number;
+  milestones?: string; // JSON字符串格式的里程碑数据
   createTime: string;
   updateTime: string;
   // 关联数据
   creator?: User;
   assignee?: User;
   members?: User[];
+  // 解析后的里程碑数据
+  milestonesData?: Milestone[];
 }
 
 // 项目DTO（用于创建/更新）
@@ -42,6 +54,7 @@ export interface ProjectDTO {
   creatorId?: number;
   assigneeId?: number;
   memberIds?: number[];
+  milestones?: string;
 }
 
 // 待办任务

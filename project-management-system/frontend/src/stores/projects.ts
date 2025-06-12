@@ -6,6 +6,7 @@ import type { Project, ProjectDTO } from "@/types";
 export const useProjectStore = defineStore("projects", () => {
   // 状态
   const projects = ref<Project[]>([]);
+  const overviewProjects = ref<Project[]>([]);
   const loading = ref(false);
   const currentProject = ref<Project | null>(null);
 
@@ -26,6 +27,21 @@ export const useProjectStore = defineStore("projects", () => {
       projects.value = response.data;
     } catch (error) {
       console.error("获取项目列表失败:", error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取项目概览
+  const fetchProjectOverview = async () => {
+    try {
+      loading.value = true;
+      const response = await projectApi.getProjectOverview();
+      overviewProjects.value = response.data;
+      return response.data;
+    } catch (error) {
+      console.error("获取项目概览失败:", error);
       throw error;
     } finally {
       loading.value = false;
@@ -120,6 +136,7 @@ export const useProjectStore = defineStore("projects", () => {
   return {
     // 状态
     projects,
+    overviewProjects,
     loading,
     currentProject,
 
@@ -130,6 +147,7 @@ export const useProjectStore = defineStore("projects", () => {
 
     // 方法
     fetchProjects,
+    fetchProjectOverview,
     fetchProject,
     createProject,
     updateProject,

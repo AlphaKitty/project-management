@@ -12,7 +12,8 @@ public class Result<T> {
     private String msg;
     private T data;
 
-    public Result() {}
+    public Result() {
+    }
 
     public Result(Integer code, String msg, T data) {
         this.code = code;
@@ -54,4 +55,18 @@ public class Result<T> {
     public static <T> Result<T> error(Integer code, String msg) {
         return new Result<>(code, msg, null);
     }
-} 
+
+    /**
+     * 未登录响应
+     */
+    public static <T> Result<T> unauthorized() {
+        return new Result<>(ResultCode.UNAUTHORIZED, "登录过期，请重新登录", null);
+    }
+
+    /**
+     * 未登录响应带自定义消息
+     */
+    public static <T> Result<T> unauthorized(String msg) {
+        return new Result<>(ResultCode.UNAUTHORIZED, msg, null);
+    }
+}

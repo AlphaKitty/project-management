@@ -21,4 +21,5 @@ public class ProjectDTO {
     private Long creatorId;
     private Long assigneeId;
     private List<Long> memberIds;
+    private String milestones;
 }
