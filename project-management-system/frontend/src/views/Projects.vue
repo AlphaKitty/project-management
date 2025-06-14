@@ -25,7 +25,7 @@
     <!-- 项目列表 -->
     <a-card title="项目列表" class="project-list-card">
       <a-table :columns="columns" :data="projectStore.projects" :loading="projectStore.loading"
-        :pagination="{ pageSize: 10 }">
+        :pagination="{ pageSize: 50 }">
         <template #status="{ record }">
           <a-tag :color="getStatusColor(record.status)">
             {{ getStatusLabel(record.status) }}
@@ -139,7 +139,7 @@
     <a-modal v-model:visible="overviewModalVisible" title="项目概览" width="1200px" :footer="false">
       <div class="overview-content">
         <a-table :columns="overviewColumns" :data="projectStore.overviewProjects" :loading="projectStore.loading"
-          :pagination="{ pageSize: 10 }">
+          :pagination="{ pageSize: 1000 }">
           <template #status="{ record }">
             <a-tag :color="getStatusColor(record.status)">
               {{ getStatusLabel(record.status) }}
@@ -187,12 +187,14 @@ import { Message } from '@arco-design/web-vue'
 import { IconPlus, IconEye } from '@arco-design/web-vue/es/icon'
 import { useProjectStore } from '@/stores/projects'
 import { useUserStore } from '@/stores/user'
+import { useTodoStore } from '@/stores/todos'
 import { StatusLabels, StatusColors } from '@/types'
 import type { Project, ProjectDTO, User, Milestone } from '@/types'
 
 // Store
 const projectStore = useProjectStore()
 const userStore = useUserStore()
+const todoStore = useTodoStore()
 
 // 响应式数据
 const modalVisible = ref(false)
@@ -222,6 +224,10 @@ let searchTimer: NodeJS.Timeout | null = null
 // 表格列配置
 const columns = [
   { title: '项目名称', dataIndex: 'name', key: 'name', width: 180, align: 'center', sortable: { sortDirections: ['ascend', 'descend'] } },
+  {
+    title: '待办数', dataIndex: 'todoCount', key: 'todoCount', width: 90, align: 'center',
+    render: ({ record }: { record: Project }) => getTodoCount(record),
+  },
   { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', width: 90, align: 'center' },
   { title: '进度', dataIndex: 'progress', key: 'progress', slotName: 'progress', width: 100, align: 'center', sortable: { sortDirections: ['ascend', 'descend'] } },
   { title: '创建人', dataIndex: 'creator', key: 'creator', slotName: 'creator', width: 90, align: 'center' },
@@ -281,6 +287,14 @@ const getAssigneeName = (project: Project) => {
   }
 
   return '未分配'
+}
+
+// 统计每个项目的待办数
+const getTodoCount = (project: Project) => {
+  return todoStore.todos.filter(todo =>
+    todo.projectId === project.id &&
+    (todo.status === 'TODO' || todo.status === 'PROGRESS')
+  ).length
 }
 
 // 用户搜索处理（防抖 + 缓存优化）
@@ -503,8 +517,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       projectStore.fetchProjects(),
-      // 移除这行，因为登录时已经设置了 currentUser
-      // userStore.fetchCurrentUser()
+      todoStore.fetchTodos()
     ])
     console.log('✅ Projects页面数据加载完成')
   } catch (error) {

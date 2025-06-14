@@ -21,11 +21,12 @@ public interface ProjectMapper extends BaseMapper<Project> {
         List<Project> selectProjectsWithCreator();
 
         /**
-         * 查询用户作为创建人或责任人的项目列表
+         * 查询用户作为创建人或责任人，或作为待办责任人的项目列表
          */
-        @Select("SELECT * FROM projects " +
-                        "WHERE creator_id = #{userId} OR assignee_id = #{userId} " +
-                        "ORDER BY create_time ASC")
+        @Select("SELECT DISTINCT p.* FROM projects p " +
+                        "LEFT JOIN todos t ON p.id = t.project_id " +
+                        "WHERE p.creator_id = #{userId} OR p.assignee_id = #{userId} OR t.assignee_id = #{userId} " +
+                        "ORDER BY p.create_time ASC")
         List<Project> selectProjectsByCreatorOrAssignee(@Param("userId") Long userId);
 
         /**

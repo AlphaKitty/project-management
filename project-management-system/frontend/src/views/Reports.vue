@@ -59,7 +59,6 @@
         <template #actions="{ record }">
           <a-button-group size="small">
             <a-button @click="viewReport(record)">查看</a-button>
-            <a-button @click="editReport(record)">编辑</a-button>
             <a-button status="danger" @click="deleteReport(record)">删除</a-button>
           </a-button-group>
         </template>
@@ -134,7 +133,11 @@
 
         <div class="report-content">
           <h3>报告内容</h3>
-          <div class="content-preview" v-html="formatContent(currentReport.content)"></div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px;">
+            <a-button type="primary" size="small" @click="copyReportRaw">复制原码</a-button>
+            <a-button type="primary" size="small" @click="copyReportContent">复制Markdown</a-button>
+          </div>
+          <div class="content-preview" ref="reportContent" v-html="formatContent(currentReport.content)"></div>
         </div>
       </div>
     </a-modal>
@@ -147,6 +150,7 @@ import { Message } from '@arco-design/web-vue'
 import { useReportStore } from '@/stores/reports'
 import { useProjectStore } from '@/stores/projects'
 import type { Report, ReportDTO } from '@/types'
+import { marked } from 'marked'
 
 // Store
 const reportStore = useReportStore()
@@ -158,6 +162,7 @@ const detailModalVisible = ref(false)
 const filterType = ref('')
 const filterProject = ref('')
 const currentReport = ref<Report | null>(null)
+const reportContent = ref<HTMLElement | null>(null)
 
 const generateForm = ref<ReportDTO>({
   title: '',
@@ -233,9 +238,9 @@ const getTypeColor = (type: string) => {
   return colors[type] || 'gray'
 }
 
-// 格式化报告内容
+// 格式化报告内容为markdown
 const formatContent = (content: string | undefined) => {
-  return content ? content.replace(/\n/g, '<br>') : ''
+  return content ? marked.parse(content) : ''
 }
 
 // 判断是否全选
@@ -315,6 +320,24 @@ const handleGenerate = async () => {
   }
 }
 
+function copyReportRaw() {
+  if (currentReport.value && currentReport.value.content) {
+    navigator.clipboard.writeText(currentReport.value.content).then(() => {
+      Message.success('原始Markdown已复制到剪贴板')
+    })
+  }
+}
+
+function copyReportContent() {
+  const el = reportContent.value
+  if (el) {
+    const text = el.innerText || el.textContent || ''
+    navigator.clipboard.writeText(text).then(() => {
+      Message.success('报告内容已复制到剪贴板')
+    })
+  }
+}
+
 // 页面加载时获取数据
 onMounted(async () => {
   try {
@@ -384,7 +407,104 @@ onUnmounted(() => {
   background: #f8f9fa;
   border-radius: 6px;
   border: 1px solid #e9ecef;
-  line-height: 1.6;
-  white-space: pre-line;
+  line-height: 1.7;
+  white-space: normal;
+  font-size: 15px;
+  color: #1d2129;
+}
+
+/* Markdown优化样式 */
+.content-preview h1,
+.content-preview h2,
+.content-preview h3,
+.content-preview h4 {
+  font-weight: 700;
+  margin: 18px 0 10px 0;
+  color: #1765ad;
+}
+
+.content-preview h1 {
+  font-size: 2em;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 6px;
+}
+
+.content-preview h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 4px;
+}
+
+.content-preview h3 {
+  font-size: 1.2em;
+}
+
+.content-preview h4 {
+  font-size: 1em;
+}
+
+.content-preview ul,
+.content-preview ol {
+  margin: 10px 0 10px 24px;
+  padding-left: 20px;
+}
+
+.content-preview li {
+  margin: 6px 0;
+  line-height: 1.7;
+}
+
+.content-preview blockquote {
+  border-left: 4px solid #b5c7e3;
+  background: #f4f8fb;
+  color: #666;
+  margin: 12px 0;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.content-preview pre {
+  background: #23272e;
+  color: #fff;
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 14px;
+  margin: 12px 0;
+}
+
+.content-preview code {
+  background: #f4f4f4;
+  color: #c7254e;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+.content-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+
+.content-preview th,
+.content-preview td {
+  border: 1px solid #e9ecef;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.content-preview th {
+  background: #f4f8fb;
+  font-weight: 600;
+}
+
+.content-preview tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.content-preview a {
+  color: #1765ad;
+  text-decoration: underline;
 }
 </style>

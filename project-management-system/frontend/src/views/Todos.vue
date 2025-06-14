@@ -21,7 +21,6 @@
             <a-row :gutter="16" align="center">
                 <a-col :span="8">
                     <a-select v-model="selectedProjectId" placeholder="选择项目" allow-clear @change="handleProjectFilter">
-                        <a-option :value="undefined">全部项目</a-option>
                         <a-option v-for="project in projectStore.projects" :key="project.id" :value="project.id">
                             {{ project.name }}
                         </a-option>
@@ -41,9 +40,9 @@
         <!-- 快捷筛选 -->
         <div class="filter-tabs">
             <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
+                <a-tab-pane key="pending" title="未完成任务" />
                 <a-tab-pane key="high" title="高优先级" />
                 <a-tab-pane key="overdue" title="已逾期任务" />
-                <a-tab-pane key="pending" title="未完成任务" />
                 <a-tab-pane key="completed" title="已完成任务" />
                 <a-tab-pane key="all" title="全部任务" />
             </a-tabs>
@@ -206,7 +205,7 @@ const userStore = useUserStore()
 const modalVisible = ref(false)
 const sendEmailModal = ref(false)
 const isEdit = ref(false)
-const activeTab = ref('high')
+const activeTab = ref('pending')
 const selectedProjectId = ref<number | undefined>(undefined)
 const formRef = ref()
 const userSearchText = ref('')

@@ -42,63 +42,112 @@
 
     <!-- 项目列表和待办任务 -->
     <a-row :gutter="24" class="content-row">
-      <a-col :span="16">
+      <a-col :span="10">
         <a-card title="项目概览" class="project-overview">
-          <div class="project-item" v-for="project in projectStore.projects.slice(0, 5)" :key="project.id">
-            <div class="project-info">
-              <h3>{{ project.name }}</h3>
-              <p>{{ project.description || '暂无描述' }}</p>
-              <a-progress :percent="project.progress / 100" />
+          <div class="project-list-scroll">
+            <div class="project-item" v-for="project in projectStore.projects" :key="project.id">
+              <div class="project-info">
+                <h3>{{ project.name }}</h3>
+                <p>{{ project.description || '暂无描述' }}</p>
+                <a-progress :percent="project.progress / 100" />
+              </div>
+              <div class="project-status">
+                <a-tag :color="getStatusColor(project.status)">
+                  {{ getStatusText(project.status) }}
+                </a-tag>
+              </div>
             </div>
-            <div class="project-status">
-              <a-tag :color="getStatusColor(project.status)">
-                {{ getStatusText(project.status) }}
-              </a-tag>
+            <div v-if="projectStore.projects.length === 0" class="empty-state">
+              <icon-folder style="font-size: 48px; color: #c0c4cc;" />
+              <p>暂无项目数据</p>
             </div>
-          </div>
-
-          <div v-if="projectStore.projects.length === 0" class="empty-state">
-            <icon-folder style="font-size: 48px; color: #c0c4cc;" />
-            <p>暂无项目数据</p>
           </div>
         </a-card>
       </a-col>
 
-      <a-col :span="8">
-        <a-card :title="`待办任务 (${sortedPendingTodos.length})`" class="todo-card">
-          <div class="todo-item" v-for="todo in sortedPendingTodos.slice(0, 8)" :key="todo.id">
-            <div class="todo-content">
-              <div class="todo-header">
-                <span class="todo-title">{{ todo.title }}</span>
-                <a-button size="small" :type="getStatusButtonType(todo.status)" @click="toggleTodoStatus(todo)"
-                  class="status-button">
-                  {{ getStatusText(todo.status) }}
-                </a-button>
-              </div>
-
-              <div class="todo-details">
-                <div class="todo-project-description">
-                  <span class="todo-project">{{ getProjectName(todo.projectId) }}</span>
-                  <span v-if="todo.description" class="todo-description">{{ todo.description }}</span>
+      <a-col :span="14">
+        <div class="todo-cards-row">
+          <a-card :title="`个人待办 (${personalTodos.length})`" class="todo-card todo-card-half" style="margin-right: 8px;">
+            <template #extra>
+              <span class="subtitle">待办人是自己</span>
+            </template>
+            <div class="todo-item" v-for="todo in personalTodos.slice(0, 100)" :key="todo.id">
+              <div class="todo-content">
+                <div class="todo-header">
+                  <span class="todo-title">★ {{ todo.title }}</span>
+                  <a-button size="small" :type="getStatusButtonType(todo.status)" @click="toggleTodoStatus(todo)"
+                    class="status-button">
+                    {{ getStatusText(todo.status) }}
+                  </a-button>
                 </div>
-
-                <div class="todo-meta">
-                  <a-tag size="small" :color="getPriorityColor(todo.priority)">
-                    {{ getPriorityText(todo.priority) }}
-                  </a-tag>
-                  <span v-if="todo.dueDate" class="todo-due-date" :class="{ 'overdue': isOverdue(todo.dueDate) }">
-                    {{ formatDueDate(todo.dueDate) }}
-                  </span>
+                <div class="todo-details">
+                  <div class="todo-project-description">
+                    <span class="todo-project">{{ getProjectName(todo.projectId) }}</span>
+                    <span v-if="todo.description" class="todo-description">{{ todo.description }}</span>
+                  </div>
+                  <div class="todo-meta">
+                    <a-tag size="small" :color="getPriorityColor(todo.priority)">
+                      {{ getPriorityText(todo.priority) }}
+                    </a-tag>
+                    <span v-if="todo.dueDate" class="todo-due-date" :class="{ 'overdue': isOverdue(todo.dueDate) }">
+                      {{ formatDueDate(todo.dueDate) }}
+                    </span>
+                  </div>
+                  <div class="todo-assignee" v-if="todo.assignee">
+                    责任人：{{ todo.assignee.nickname || todo.assignee.username || '未分配' }}
+                  </div>
+                  <div class="todo-assignee" v-else>
+                    责任人：未分配
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div v-if="sortedPendingTodos.length === 0" class="empty-state">
-            <icon-calendar style="font-size: 48px; color: #c0c4cc;" />
-            <p>暂无待办任务</p>
-          </div>
-        </a-card>
+            <div v-if="personalTodos.length === 0" class="empty-state">
+              <icon-calendar style="font-size: 48px; color: #c0c4cc;" />
+              <p>暂无个人待办</p>
+            </div>
+          </a-card>
+          <a-card :title="`项目待办 (${projectTodos.length})`" class="todo-card todo-card-half">
+            <template #extra>
+              <span class="subtitle">项目责任人或创建人是自己</span>
+            </template>
+            <div class="todo-item" v-for="todo in projectTodos.slice(0, 100)" :key="todo.id">
+              <div class="todo-content">
+                <div class="todo-header">
+                  <span class="todo-title">★ {{ todo.title }}</span>
+                  <a-button size="small" :type="getStatusButtonType(todo.status)" @click="toggleTodoStatus(todo)"
+                    class="status-button">
+                    {{ getStatusText(todo.status) }}
+                  </a-button>
+                </div>
+                <div class="todo-details">
+                  <div class="todo-project-description">
+                    <span class="todo-project">{{ getProjectName(todo.projectId) }}</span>
+                    <span v-if="todo.description" class="todo-description">{{ todo.description }}</span>
+                  </div>
+                  <div class="todo-meta">
+                    <a-tag size="small" :color="getPriorityColor(todo.priority)">
+                      {{ getPriorityText(todo.priority) }}
+                    </a-tag>
+                    <span v-if="todo.dueDate" class="todo-due-date" :class="{ 'overdue': isOverdue(todo.dueDate) }">
+                      {{ formatDueDate(todo.dueDate) }}
+                    </span>
+                  </div>
+                  <div class="todo-assignee" v-if="todo.assignee">
+                    责任人：{{ todo.assignee.nickname || todo.assignee.username || '未分配' }}
+                  </div>
+                  <div class="todo-assignee" v-else>
+                    责任人：未分配
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-if="projectTodos.length === 0" class="empty-state">
+              <icon-calendar style="font-size: 48px; color: #c0c4cc;" />
+              <p>暂无项目待办</p>
+            </div>
+          </a-card>
+        </div>
       </a-col>
     </a-row>
   </div>
@@ -125,36 +174,46 @@ const todoStore = useTodoStore()
 const userStore = useUserStore()
 
 // 计算属性：排序后的待办任务
-const sortedPendingTodos = computed(() => {
-  // 获取所有未完成的任务（TODO 和 PROGRESS 状态）
-  const pendingTodos = todoStore.todos.filter(
-    todo => todo.status === 'TODO' || todo.status === 'PROGRESS'
-  )
-
-  // 按优先级和截止时间排序
-  return pendingTodos.sort((a, b) => {
+const sortTodos = (todos: Todo[]) => {
+  return todos.slice().sort((a, b) => {
     // 优先级排序：HIGH > MEDIUM > LOW
     const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 }
     const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0
     const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0
-
     if (aPriority !== bPriority) {
-      return bPriority - aPriority // 高优先级在前
+      return bPriority - aPriority
     }
-
-    // 优先级相同时按截止时间排序
+    // 截止时间近的在前
     if (a.dueDate && b.dueDate) {
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime() // 截止时间近的在前
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
     }
-
-    // 有截止时间的在前
     if (a.dueDate && !b.dueDate) return -1
     if (!a.dueDate && b.dueDate) return 1
-
-    // 都没有截止时间时按创建时间排序
+    // 创建时间新>旧
     return new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
   })
-})
+}
+
+const personalTodos = computed(() =>
+  sortTodos(
+    todoStore.todos.filter(todo =>
+      (todo.status === 'TODO' || todo.status === 'PROGRESS') &&
+      todo.assigneeId === userStore.currentUser?.id
+    )
+  )
+)
+
+const projectTodos = computed(() =>
+  sortTodos(
+    todoStore.todos.filter(todo => {
+      if (!(todo.status === 'TODO' || todo.status === 'PROGRESS')) return false
+      const project = todo.project
+      return (
+        (project && (project.assigneeId === userStore.currentUser?.id || project.creatorId === userStore.currentUser?.id))
+      )
+    })
+  )
+)
 
 // 格式化截止日期
 const formatDueDate = (dueDate: string) => {
@@ -258,8 +317,19 @@ onMounted(async () => {
     await Promise.all([
       projectStore.fetchProjects(),
       todoStore.fetchTodos()
-      // 移除 fetchTodayTodos()，因为我们现在使用 sortedPendingTodos 计算属性
     ])
+    // 补全每个 todo 的 project 字段中的 assigneeId 和 creatorId，确保 projectTodos 能正确筛选
+    todoStore.todos.forEach(todo => {
+      if (todo.projectId) {
+        const project = projectStore.projects.find(p => p.id === todo.projectId)
+        if (project) {
+          if (todo.project) {
+            todo.project.assigneeId = project.assigneeId
+            todo.project.creatorId = project.creatorId
+          }
+        }
+      }
+    })
   } catch (error) {
     Message.error('数据加载失败')
   }
@@ -295,30 +365,10 @@ onMounted(async () => {
   max-height: 600px;
 }
 
-/* 为项目概览卡片内容区域添加滚动条 */
-.project-overview :deep(.arco-card-body) {
-  max-height: 600px;
+.project-list-scroll {
+  max-height: 520px;
   overflow-y: auto;
   padding-right: 8px;
-}
-
-/* 自定义滚动条样式 */
-.project-overview :deep(.arco-card-body)::-webkit-scrollbar {
-  width: 6px;
-}
-
-.project-overview :deep(.arco-card-body)::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.project-overview :deep(.arco-card-body)::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-.project-overview :deep(.arco-card-body)::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
 }
 
 .project-item {
@@ -353,9 +403,35 @@ onMounted(async () => {
   margin-left: 16px;
 }
 
+/* 调整待办卡片父容器高度和布局，避免卡片溢出 */
+.todo-cards-row {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  align-items: stretch;
+  height: 100%;
+}
+
+.arco-col-14 {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.todo-card-half {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .todo-card {
   min-height: 600px;
   max-height: 600px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 /* 为待办任务卡片内容区域添加滚动条 */
@@ -416,7 +492,7 @@ onMounted(async () => {
 }
 
 .todo-title {
-  font-weight: 500;
+  font-weight: 1000;
   color: #333;
   flex: 1;
 }
@@ -479,5 +555,11 @@ onMounted(async () => {
 .empty-state p {
   margin: 12px 0 0 0;
   font-size: 14px;
+}
+
+.todo-assignee {
+  color: #888;
+  font-size: 12px;
+  margin-top: 2px;
 }
 </style>

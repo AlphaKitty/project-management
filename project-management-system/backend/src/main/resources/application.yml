@@ -95,12 +95,12 @@ mybatis-plus:
 #     language: zh_cn
 
 # 日志配置
-logging:
-  level:
-    com.projectmanagement: debug
-    com.projectmanagement.mapper: debug
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{50} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
-  file:
-    name: project-management-system/logs/project-management.log
+#logging:
+#  level:
+#    com.projectmanagement: debug
+#    com.projectmanagement.mapper: debug
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level %logger{50} - %msg%n"
+#    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
+#  file:
+#    name: project-management-system/logs/project-management.log
