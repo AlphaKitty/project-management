@@ -65,4 +65,9 @@ public interface ProjectService extends IService<Project> {
      * 获取项目概览（按创建时间排序）
      */
     List<Project> getProjectOverview();
+
+    /**
+     * 更新所有项目的工作计划
+     */
+    void updateAllProjectWorkPlans();
 }

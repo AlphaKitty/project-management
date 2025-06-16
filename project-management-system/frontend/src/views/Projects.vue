@@ -136,7 +136,17 @@
     </a-modal>
 
     <!-- 项目概览模态框 -->
-    <a-modal v-model:visible="overviewModalVisible" title="项目概览" width="1200px" :footer="false">
+    <a-modal v-model:visible="overviewModalVisible" title="项目概览" width="1800px" :footer="false">
+      <div class="overview-header">
+        <a-button type="primary" @click="updateWorkPlans" :loading="workUpdateLoading">
+          <template #icon><icon-refresh /></template>
+          工作更新
+        </a-button>
+        <a-button type="primary" @click="exportToExcel">
+          <template #icon><icon-download /></template>
+          导出Excel
+        </a-button>
+      </div>
       <div class="overview-content">
         <a-table :columns="overviewColumns" :data="projectStore.overviewProjects" :loading="projectStore.loading"
           :pagination="{ pageSize: 1000 }">
@@ -160,16 +170,74 @@
 
           <template #milestones="{ record }">
             <div class="milestones-display" v-if="getMilestones(record).length > 0">
-              <div v-for="(milestone, index) in getMilestones(record)" :key="index" class="milestone-row">
-                <a-tag :color="getMilestoneColor(milestone.status)" size="small" class="milestone-tag">
-                  {{ milestone.name }}
-                </a-tag>
-                <span class="milestone-date" v-if="milestone.dueDate">
-                  {{ milestone.dueDate }}
-                </span>
+              <div v-for="(milestone, index) in getMilestones(record)" :key="index" class="milestone-card">
+                <div class="milestone-row">
+                  <span class="milestone-name">{{ milestone.name }}</span>
+                  <a-tag :color="getMilestoneColor(milestone.status)" size="small" class="milestone-status">
+                    {{ getMilestoneStatusLabel(milestone.status) }}
+                  </a-tag>
+                  <span class="milestone-date" v-if="milestone.dueDate">
+                    {{ formatDate(milestone.dueDate) }}
+                  </span>
+                </div>
               </div>
             </div>
-            <span v-else class="text-gray-400">暂无里程碑</span>
+            <div v-else class="no-milestones">
+              <span class="no-milestones-text">暂无里程碑</span>
+            </div>
+          </template>
+
+          <template #thisWeekWork="{ record }">
+            <div class="work-plan-display">
+              <div v-if="record.thisWeekWork" class="work-plan-content">
+                {{ record.thisWeekWork }}
+              </div>
+              <div v-else class="no-work-plan">
+                <span class="no-work-plan-text">暂无本周工作</span>
+              </div>
+            </div>
+          </template>
+
+          <template #nextWeekPlan="{ record }">
+            <div class="work-plan-display">
+              <div v-if="record.nextWeekPlan" class="work-plan-content">
+                {{ record.nextWeekPlan }}
+              </div>
+              <div v-else class="no-work-plan">
+                <span class="no-work-plan-text">暂无下周计划</span>
+              </div>
+            </div>
+          </template>
+
+          <template #todos="{ record }">
+            <div class="todos-display">
+              <div v-for="todo in getUncompletedTodos(record)" :key="todo.id" class="todo-detail-item">
+                <div class="todo-header">
+                  <span class="todo-title">{{ todo.title }}</span>
+                </div>
+                <div class="todo-info">
+                  <span class="todo-assignee">责任人: {{ getTodoAssigneeName(todo) }}</span>
+                  <span class="todo-dates">
+                    创建: {{ formatDate(todo.createTime) }}
+                    <span v-if="todo.dueDate"> | 截止: {{ formatDate(todo.dueDate) }}</span>
+                  </span>
+                  <div class="todo-status-row">
+                    <a-tag :color="getTodoStatusColor(todo.status)" size="small" class="todo-status-tag">
+                      {{ getStatusLabel(todo.status) }}
+                    </a-tag>
+                    <span class="todo-remaining" :class="getTodoRemainingClass(todo)">
+                      {{ getTodoRemainingText(todo) }}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+              <span v-if="getUncompletedTodos(record).length === 0" class="text-gray-400">正常进行中</span>
+            </div>
+          </template>
+
+          <template #createTime="{ record }">
+            {{ formatDateTime(record.createTime) }}
           </template>
 
           <template #actions="{ record }">
@@ -184,12 +252,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Message } from '@arco-design/web-vue'
-import { IconPlus, IconEye } from '@arco-design/web-vue/es/icon'
+import { IconPlus, IconEye, IconDownload, IconRefresh } from '@arco-design/web-vue/es/icon'
+import * as XLSX from 'xlsx'
 import { useProjectStore } from '@/stores/projects'
 import { useUserStore } from '@/stores/user'
 import { useTodoStore } from '@/stores/todos'
 import { StatusLabels, StatusColors } from '@/types'
 import type { Project, ProjectDTO, User, Milestone } from '@/types'
+import dayjs from 'dayjs'
 
 // Store
 const projectStore = useProjectStore()
@@ -200,6 +270,7 @@ const todoStore = useTodoStore()
 const modalVisible = ref(false)
 const overviewModalVisible = ref(false)
 const isEdit = ref(false)
+const workUpdateLoading = ref(false)
 const formData = ref<ProjectDTO>({
   name: '',
   description: '',
@@ -229,7 +300,7 @@ const columns = [
     render: ({ record }: { record: Project }) => getTodoCount(record),
   },
   { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', width: 90, align: 'center' },
-  { title: '进度', dataIndex: 'progress', key: 'progress', slotName: 'progress', width: 100, align: 'center', sortable: { sortDirections: ['ascend', 'descend'] } },
+  { title: '总进度', dataIndex: 'progress', key: 'progress', slotName: 'progress', width: 100, align: 'center', sortable: { sortDirections: ['ascend', 'descend'] } },
   { title: '创建人', dataIndex: 'creator', key: 'creator', slotName: 'creator', width: 90, align: 'center' },
   { title: '责任人', dataIndex: 'assignee', key: 'assignee', slotName: 'assignee', width: 90, align: 'center' },
   { title: '开始日期', dataIndex: 'startDate', key: 'startDate', width: 110, align: 'center', sortable: { sortDirections: ['ascend', 'descend'] } },
@@ -242,9 +313,12 @@ const overviewColumns = [
   { title: '项目名称', dataIndex: 'name', key: 'name', width: 150, align: 'center' },
   { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', width: 80, align: 'center' },
   { title: '进度', dataIndex: 'progress', key: 'progress', slotName: 'progress', width: 120, align: 'center' },
-  { title: '创建人', dataIndex: 'creator', key: 'creator', slotName: 'creator', width: 80, align: 'center' },
   { title: '责任人', dataIndex: 'assignee', key: 'assignee', slotName: 'assignee', width: 80, align: 'center' },
   { title: '里程碑', dataIndex: 'milestones', key: 'milestones', slotName: 'milestones', width: 100, align: 'center' },
+  { title: '本周工作', dataIndex: 'thisWeekWork', key: 'thisWeekWork', slotName: 'thisWeekWork', width: 200, align: 'center' },
+  { title: '下周计划', dataIndex: 'nextWeekPlan', key: 'nextWeekPlan', slotName: 'nextWeekPlan', width: 200, align: 'center' },
+  { title: '待办事项', dataIndex: 'todos', key: 'todos', slotName: 'todos', width: 180, align: 'center' },
+  { title: '创建人', dataIndex: 'creator', key: 'creator', slotName: 'creator', width: 80, align: 'center' },
   { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 100, align: 'center' },
   { title: '操作', key: 'actions', slotName: 'actions', width: 80, align: 'center' }
 ]
@@ -486,6 +560,16 @@ const getMilestoneColor = (status: string) => {
   return colors[status as keyof typeof colors] || 'gray'
 }
 
+// 获取里程碑状态标签
+const getMilestoneStatusLabel = (status: string) => {
+  const labels = {
+    'PENDING': '-待开始-',
+    'PROGRESS': '-进行中-',
+    'COMPLETED': '-已完成-'
+  }
+  return labels[status as keyof typeof labels] || status
+}
+
 // 编辑带里程碑的项目
 const editProjectWithMilestones = (project: Project) => {
   isEdit.value = true
@@ -510,6 +594,164 @@ const editProjectWithMilestones = (project: Project) => {
   modalVisible.value = true
   overviewModalVisible.value = false
 }
+
+// 获取项目未完成的待办事项
+const getUncompletedTodos = (project: Project) => {
+  return todoStore.todos.filter(todo =>
+    todo.projectId === project.id &&
+    (todo.status === 'TODO' || todo.status === 'PROGRESS')
+  )
+}
+
+// 获取待办状态颜色
+const getTodoStatusColor = (status: string) => {
+  const colors = {
+    'TODO': 'orange',
+    'PROGRESS': 'blue',
+    'COMPLETED': 'green'
+  }
+  return colors[status as keyof typeof colors] || 'gray'
+}
+
+// 获取待办责任人名称
+const getTodoAssigneeName = (todo: any) => {
+  if (todo.assignee) {
+    return todo.assignee.nickname || todo.assignee.username || '未知'
+  }
+  if (todo.assigneeId) {
+    return `用户${todo.assigneeId}`
+  }
+  return '未分配'
+}
+
+// 格式化日期（简化版）
+const formatDate = (date: string | Date | null | undefined) => {
+  if (!date) return ''
+  return dayjs(date).format('MM-DD')
+}
+
+// 获取待办剩余时间文本
+const getTodoRemainingText = (todo: any) => {
+  if (!todo.dueDate) return ''
+
+  const now = dayjs()
+  const dueDate = dayjs(todo.dueDate)
+  const diffDays = dueDate.diff(now, 'day')
+
+  if (diffDays < 0) {
+    return `逾期${Math.abs(diffDays)}天`
+  } else if (diffDays === 0) {
+    return '今日到期'
+  } else {
+    return `剩余${diffDays}天`
+  }
+}
+
+// 获取待办剩余时间样式类
+const getTodoRemainingClass = (todo: any) => {
+  if (!todo.dueDate) return ''
+
+  const now = dayjs()
+  const dueDate = dayjs(todo.dueDate)
+  const diffDays = dueDate.diff(now, 'day')
+
+  if (diffDays < 0) {
+    return 'todo-overdue'
+  } else if (diffDays <= 3) {
+    return 'todo-urgent'
+  } else {
+    return 'todo-normal'
+  }
+}
+
+// 添加 formatDateTime 函数
+const formatDateTime = (date: string | Date | null | undefined) => {
+  if (!date) return '';
+  return dayjs(date).format('YYYY-MM-DD');
+};
+
+// 工作更新功能
+const updateWorkPlans = async () => {
+  try {
+    workUpdateLoading.value = true
+
+    // 调用后端API更新所有项目的工作计划
+    const response = await fetch('/api/projects/update-work-plans', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      // 重新加载项目概览数据
+      await projectStore.fetchProjectOverview()
+      Message.success('工作计划更新成功')
+    } else {
+      throw new Error('更新失败')
+    }
+  } catch (error) {
+    console.error('工作计划更新失败:', error)
+    Message.error('工作计划更新失败')
+  } finally {
+    workUpdateLoading.value = false
+  }
+}
+
+// 导出Excel功能
+const exportToExcel = () => {
+  try {
+    // 准备导出数据
+    const exportData = projectStore.overviewProjects.map(project => {
+      const milestones = getMilestones(project)
+      const todos = getUncompletedTodos(project)
+
+      return {
+        '项目名称': project.name,
+        '状态': getStatusLabel(project.status),
+        '进度': `${project.progress}%`,
+        '创建人': getCreatorName(project),
+        '责任人': getAssigneeName(project),
+        '里程碑': milestones.map(m => `${m.name}(${getMilestoneStatusLabel(m.status)})`).join('; '),
+        '本周工作': project.thisWeekWork || '暂无本周工作',
+        '下周计划': project.nextWeekPlan || '暂无下周计划',
+        '待办事项': todos.map(t => `${t.title}(${getStatusLabel(t.status)})`).join('; '),
+        '创建时间': formatDateTime(project.createTime)
+      }
+    })
+
+    // 创建工作簿
+    const ws = XLSX.utils.json_to_sheet(exportData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '项目概览')
+
+    // 设置列宽
+    const colWidths = [
+      { wch: 30 }, // 项目名称
+      { wch: 10 }, // 状态
+      { wch: 8 },  // 进度
+      { wch: 12 }, // 创建人
+      { wch: 12 }, // 责任人
+      { wch: 40 }, // 里程碑
+      { wch: 30 }, // 本周工作
+      { wch: 30 }, // 下周计划
+      { wch: 40 }, // 待办事项
+      { wch: 12 }  // 创建时间
+    ]
+    ws['!cols'] = colWidths
+
+    // 生成文件名
+    const fileName = `项目概览_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`
+
+    // 导出文件
+    XLSX.writeFile(wb, fileName)
+
+    Message.success('Excel导出成功')
+  } catch (error) {
+    console.error('导出Excel失败:', error)
+    Message.error('Excel导出失败')
+  }
+};
 
 // 页面加载时获取数据
 onMounted(async () => {
@@ -625,47 +867,167 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  width: 100%;
+}
+
+.milestone-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 4px 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.milestone-card:hover {
+  border-color: #52c41a;
+  box-shadow: 0 2px 6px rgba(82, 196, 26, 0.15);
 }
 
 .milestone-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 2px 4px;
-  border-radius: 4px;
-  background: #f8f9fa;
+  gap: 6px;
 }
 
-.milestone-tag {
-  flex: 1;
-  margin-right: 8px;
-  font-size: 13px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+.milestone-name {
+  font-size: 12px;
   font-weight: 500;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.milestone-tag:hover {
-  border-color: rgba(0, 0, 0, 0.2);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.milestone-status {
+  flex-shrink: 0;
+  font-size: 10px;
+  height: 16px;
+  line-height: 14px;
+  padding: 0 4px;
 }
 
 .milestone-date {
+  font-size: 11px;
+  color: #999;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+.no-milestones {
+  text-align: center;
+  padding: 12px;
+  color: #999;
+  font-style: italic;
+}
+
+.no-milestones-text {
   font-size: 12px;
-  color: #666;
-  white-space: nowrap;
+}
+
+/* 工作计划显示样式 */
+.work-plan-display {
+  padding: 8px;
+  min-height: 40px;
+}
+
+.work-plan-content {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #333;
+  text-align: left;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.no-work-plan {
+  text-align: center;
+  padding: 12px;
+  color: #999;
+  font-style: italic;
+}
+
+.no-work-plan-text {
+  font-size: 12px;
+}
+
+/* 概览头部样式 */
+.overview-header {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 /* 概览内容样式 */
 .overview-content {
   max-height: 600px;
   overflow-y: auto;
+}
+
+/* 待办事项显示样式 */
+.todos-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.todo-detail-item {
+  padding: 8px;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.todo-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.todo-status-tag {
+  flex-shrink: 0;
+}
+
+.todo-title {
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #666;
+}
+
+.todo-assignee {
+  font-weight: 500;
+}
+
+.todo-dates {
+  color: #999;
+}
+
+.todo-remaining {
+  font-weight: 500;
+}
+
+.todo-overdue {
+  color: #f53f3f;
+}
+
+.todo-urgent {
+  color: #ff7d00;
+}
+
+.todo-normal {
+  color: #00b42a;
 }
 </style>

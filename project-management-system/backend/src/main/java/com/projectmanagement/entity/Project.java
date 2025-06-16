@@ -32,6 +32,16 @@ public class Project extends BaseEntity {
      */
     private String milestones;
 
+    /**
+     * 本周工作内容
+     */
+    private String thisWeekWork;
+
+    /**
+     * 下周计划内容
+     */
+    private String nextWeekPlan;
+
     @TableField(exist = false)
     private List<User> members;
 

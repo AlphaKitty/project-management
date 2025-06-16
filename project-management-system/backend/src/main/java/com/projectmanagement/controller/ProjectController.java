@@ -143,4 +143,22 @@ public class ProjectController {
         List<Project> projects = projectService.getProjectOverview();
         return Result.success(projects);
     }
+
+    /**
+     * 更新所有项目的工作计划
+     */
+    @PostMapping("/update-work-plans")
+    public Result<String> updateWorkPlans(HttpSession session) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.unauthorized();
+        }
+
+        try {
+            projectService.updateAllProjectWorkPlans();
+            return Result.success("工作计划更新成功");
+        } catch (Exception e) {
+            return Result.error("工作计划更新失败: " + e.getMessage());
+        }
+    }
 }

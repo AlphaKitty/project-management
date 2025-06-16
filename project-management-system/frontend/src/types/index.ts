@@ -32,6 +32,8 @@ export interface Project {
   creatorId: number;
   assigneeId?: number;
   milestones?: string; // JSON字符串格式的里程碑数据
+  thisWeekWork?: string; // 本周工作内容
+  nextWeekPlan?: string; // 下周计划内容
   createTime: string;
   updateTime: string;
   // 关联数据
@@ -55,6 +57,8 @@ export interface ProjectDTO {
   assigneeId?: number;
   memberIds?: number[];
   milestones?: string;
+  thisWeekWork?: string;
+  nextWeekPlan?: string;
 }
 
 // 待办任务

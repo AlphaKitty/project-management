@@ -51,7 +51,7 @@
         <!-- 任务列表 -->
         <a-card title="任务列表" class="todo-list-card">
             <a-table :columns="columns" :data="filteredTodos" :loading="todoStore.loading"
-                :pagination="{ pageSize: 10 }">
+                :pagination="{ pageSize: 20 }">
                 <template #title="{ record }">
                     <div class="task-title">
                         <a-checkbox :model-value="record.status === 'DONE'" @change="toggleTaskStatus(record)" />
@@ -79,6 +79,10 @@
 
                 <template #assignee="{ record }">
                     {{ record.assignee?.username || '未分配' }}
+                </template>
+
+                <template #updateTime="{ record }">
+                    {{ formatDateTime(record.updateTime) }}
                 </template>
 
                 <template #actions="{ record }">
@@ -195,6 +199,7 @@ import { useProjectStore } from '@/stores/projects'
 import { useUserStore } from '@/stores/user'
 import { StatusLabels, StatusColors } from '@/types'
 import type { Todo, TodoDTO, User } from '@/types'
+import dayjs from 'dayjs'
 
 // Store
 const todoStore = useTodoStore()
@@ -273,15 +278,26 @@ const formRules = {
 }
 
 // 表格列配置
-const columns = [
-    { title: '任务标题', dataIndex: 'title', key: 'title', slotName: 'title', width: 200 },
-    { title: '优先级', dataIndex: 'priority', key: 'priority', slotName: 'priority', align: 'center' },
-    { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', align: 'center' },
-    { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project', width: 200, align: 'center' },
-    { title: '负责人', dataIndex: 'assignee', key: 'assignee', slotName: 'assignee', align: 'center' },
-    { title: '截止日期', dataIndex: 'dueDate', key: 'dueDate', align: 'center' },
-    { title: '操作', key: 'actions', slotName: 'actions', width: 200, align: 'center' }
-]
+const columns = computed(() => {
+    const baseColumns = [
+        { title: '任务标题', dataIndex: 'title', key: 'title', slotName: 'title', width: 200 },
+        { title: '优先级', dataIndex: 'priority', key: 'priority', slotName: 'priority', align: 'center' },
+        { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', align: 'center' },
+        { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project', width: 200, align: 'center' },
+        { title: '负责人', dataIndex: 'assignee', key: 'assignee', slotName: 'assignee', align: 'center' },
+        { title: '截止日期', dataIndex: 'dueDate', key: 'dueDate', align: 'center', sortable: { sortDirections: ['ascend', 'descend'] } },
+        { title: '操作', key: 'actions', slotName: 'actions', width: 200, align: 'center' }
+    ]
+
+    if (activeTab.value === 'completed') {
+        // 在已完成标签页中，在截止日期前插入更新时间列
+        const updateTimeColumn = { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', slotName: 'updateTime', align: 'center', sortable: { sortDirections: ['descend'] } }
+        const dueDateIndex = baseColumns.findIndex(col => col.dataIndex === 'dueDate')
+        baseColumns.splice(dueDateIndex, 0, updateTimeColumn)
+    }
+
+    return baseColumns
+})
 
 // 当前显示的任务列表（结合标签页和项目筛选）
 const currentTodos = computed(() => {
@@ -788,6 +804,12 @@ const handleSendEmail = async (): Promise<boolean> => {
         return false
     }
 }
+
+// 添加 formatDateTime 函数
+const formatDateTime = (date: string | Date | null | undefined) => {
+    if (!date) return '';
+    return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
+};
 
 // 页面加载时获取数据
 onMounted(async () => {

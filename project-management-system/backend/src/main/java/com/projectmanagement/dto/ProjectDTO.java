@@ -22,4 +22,6 @@ public class ProjectDTO {
     private Long assigneeId;
     private List<Long> memberIds;
     private String milestones;
+    private String thisWeekWork;
+    private String nextWeekPlan;
 }

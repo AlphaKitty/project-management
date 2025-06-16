@@ -51,6 +51,8 @@ CREATE TABLE `projects` (
     `assignee_id` BIGINT(20) COMMENT '项目负责人ID',
     `creator_id` BIGINT(20) NOT NULL COMMENT '创建人ID',
     `milestones` TEXT COMMENT '里程碑节点JSON格式存储',
+    `this_week_work` TEXT COMMENT '本周工作内容',
+    `next_week_plan` TEXT COMMENT '下周计划内容',
     `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
