@@ -291,9 +291,17 @@ const columns = computed(() => {
 
     if (activeTab.value === 'completed') {
         // 在已完成标签页中，在截止日期前插入更新时间列
-        const updateTimeColumn = { title: '更新时间', dataIndex: 'updateTime', key: 'updateTime', slotName: 'updateTime', align: 'center', sortable: { sortDirections: ['descend'] } }
+        const updateTimeColumn = {
+            title: '更新时间',
+            dataIndex: 'updateTime',
+            key: 'updateTime',
+            slotName: 'updateTime',
+            width: 120,
+            align: 'center' as const,
+            sortable: { sortDirections: ['descend'] as const }
+        }
         const dueDateIndex = baseColumns.findIndex(col => col.dataIndex === 'dueDate')
-        baseColumns.splice(dueDateIndex, 0, updateTimeColumn)
+        baseColumns.splice(dueDateIndex, 0, updateTimeColumn as any)
     }
 
     return baseColumns
