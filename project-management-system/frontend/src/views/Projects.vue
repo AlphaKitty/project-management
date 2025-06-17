@@ -634,9 +634,9 @@ const formatDate = (date: string | Date | null | undefined) => {
 const getTodoRemainingText = (todo: any) => {
   if (!todo.dueDate) return ''
 
-  const now = dayjs()
-  const dueDate = dayjs(todo.dueDate)
-  const diffDays = dueDate.diff(now, 'day')
+  const today = dayjs().startOf('day')
+  const dueDate = dayjs(todo.dueDate).startOf('day')
+  const diffDays = dueDate.diff(today, 'day')
 
   if (diffDays < 0) {
     return `逾期${Math.abs(diffDays)}天`
@@ -651,9 +651,9 @@ const getTodoRemainingText = (todo: any) => {
 const getTodoRemainingClass = (todo: any) => {
   if (!todo.dueDate) return ''
 
-  const now = dayjs()
-  const dueDate = dayjs(todo.dueDate)
-  const diffDays = dueDate.diff(now, 'day')
+  const today = dayjs().startOf('day')
+  const dueDate = dayjs(todo.dueDate).startOf('day')
+  const diffDays = dueDate.diff(today, 'day')
 
   if (diffDays < 0) {
     return 'todo-overdue'

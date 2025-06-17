@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 邮件发送服务实现类
@@ -78,6 +79,13 @@ public class EmailSendServiceImpl implements EmailSendService {
                 creator.getUsername(), creator.getId());
         log.info("任务标题: {}", todo.getTitle());
         log.info("分配给邮箱: {}", assignee.getEmail());
+        log.info("任务邮件通知设置: {}", todo.getEmailEnabled());
+
+        // 首先检查任务是否启用了邮件通知
+        if (todo.getEmailEnabled() == null || !todo.getEmailEnabled()) {
+            log.info("❌ 任务未启用邮件通知，跳过发送任务分配通知");
+            return;
+        }
 
         // 检查用户是否启用了任务分配通知
         UserEmailPreference preference = getUserEmailPreference(assignee.getId());
@@ -193,6 +201,13 @@ public class EmailSendServiceImpl implements EmailSendService {
     public void handleTaskStatusChangeNotification(Todo todo, String oldStatus, String newStatus) {
         log.info("处理任务状态变更通知: todoId={}, oldStatus={}, newStatus={}",
                 todo.getId(), oldStatus, newStatus);
+        log.info("任务邮件通知设置: {}", todo.getEmailEnabled());
+
+        // 首先检查任务是否启用了邮件通知
+        if (todo.getEmailEnabled() == null || !todo.getEmailEnabled()) {
+            log.info("❌ 任务未启用邮件通知，跳过发送状态变更通知");
+            return;
+        }
 
         // 准备模板变量
         Map<String, Object> variables = new HashMap<>();
@@ -846,10 +861,23 @@ public class EmailSendServiceImpl implements EmailSendService {
                 return;
             }
 
+            // 过滤出启用了邮件通知的任务
+            List<Todo> enabledTasks = tasks.stream()
+                    .filter(task -> task.getEmailEnabled() != null && task.getEmailEnabled())
+                    .collect(Collectors.toList());
+
+            log.info("过滤后的任务数: {} (原始: {})", enabledTasks.size(), tasks.size());
+
+            // 如果没有启用邮件通知的任务，跳过发送
+            if (enabledTasks.isEmpty()) {
+                log.info("用户 {} 没有启用邮件通知的截止日期任务，跳过发送", user.getUsername());
+                return;
+            }
+
             // 构建任务列表HTML
             StringBuilder taskListHtml = new StringBuilder();
-            for (int i = 0; i < tasks.size(); i++) {
-                Todo task = tasks.get(i);
+            for (int i = 0; i < enabledTasks.size(); i++) {
+                Todo task = enabledTasks.get(i);
 
                 // 计算剩余天数
                 long daysRemaining = java.time.temporal.ChronoUnit.DAYS.between(
@@ -903,7 +931,7 @@ public class EmailSendServiceImpl implements EmailSendService {
             // 准备模板变量
             Map<String, Object> variables = new HashMap<>();
             variables.put("userName", user.getNickname() != null ? user.getNickname() : user.getUsername());
-            variables.put("taskCount", tasks.size());
+            variables.put("taskCount", enabledTasks.size());
             variables.put("taskListHtml", taskListHtml.toString());
             variables.put("currentDate", java.time.LocalDate.now().toString());
 
@@ -946,10 +974,23 @@ public class EmailSendServiceImpl implements EmailSendService {
                 return;
             }
 
+            // 过滤出启用了邮件通知的任务
+            List<Todo> enabledTasks = tasks.stream()
+                    .filter(task -> task.getEmailEnabled() != null && task.getEmailEnabled())
+                    .collect(Collectors.toList());
+
+            log.info("过滤后的任务数: {} (原始: {})", enabledTasks.size(), tasks.size());
+
+            // 如果没有启用邮件通知的任务，跳过发送
+            if (enabledTasks.isEmpty()) {
+                log.info("用户 {} 没有启用邮件通知的逾期任务，跳过发送", user.getUsername());
+                return;
+            }
+
             // 构建任务列表HTML
             StringBuilder taskListHtml = new StringBuilder();
-            for (int i = 0; i < tasks.size(); i++) {
-                Todo task = tasks.get(i);
+            for (int i = 0; i < enabledTasks.size(); i++) {
+                Todo task = enabledTasks.get(i);
 
                 // 计算逾期天数
                 long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(
@@ -1000,7 +1041,7 @@ public class EmailSendServiceImpl implements EmailSendService {
             // 准备模板变量
             Map<String, Object> variables = new HashMap<>();
             variables.put("userName", user.getNickname() != null ? user.getNickname() : user.getUsername());
-            variables.put("taskCount", tasks.size());
+            variables.put("taskCount", enabledTasks.size());
             variables.put("taskListHtml", taskListHtml.toString());
             variables.put("currentDate", java.time.LocalDate.now().toString());
 

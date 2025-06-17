@@ -429,14 +429,24 @@ onMounted(async () => {
 .todo-card {
   min-height: 600px;
   max-height: 600px;
+  height: 100%;
+}
+
+.todo-card :deep(.arco-card) {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
+/* 固定header高度，防止被内容挤压 */
+.todo-card :deep(.arco-card-header) {
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
 /* 为待办任务卡片内容区域添加滚动条 */
 .todo-card :deep(.arco-card-body) {
-  max-height: 600px;
+  flex: 1;
   overflow-y: auto;
   padding-right: 8px;
 }

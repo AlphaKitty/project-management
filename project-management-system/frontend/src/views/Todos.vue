@@ -32,6 +32,10 @@
                             <template #icon><icon-email /></template>
                             发送邮件
                         </a-button>
+                        <a-button @click="openImportModal">
+                            <template #icon><icon-upload /></template>
+                            批量导入
+                        </a-button>
                     </a-space>
                 </a-col>
             </a-row>
@@ -54,7 +58,6 @@
                 :pagination="{ pageSize: 20 }">
                 <template #title="{ record }">
                     <div class="task-title">
-                        <a-checkbox :model-value="record.status === 'DONE'" @change="toggleTaskStatus(record)" />
                         <span :class="{ 'completed': record.status === 'DONE' }">
                             {{ record.title }}
                         </span>
@@ -154,6 +157,13 @@
                 <a-form-item label="截止日期" field="dueDate">
                     <a-date-picker v-model="formData.dueDate" style="width: 100%" />
                 </a-form-item>
+
+                <a-form-item label="邮件通知" field="emailEnabled">
+                    <a-switch v-model="formData.emailEnabled" />
+                    <span style="margin-left: 8px; color: #666; font-size: 12px;">
+                        开启后将向责任人发送邮件通知
+                    </span>
+                </a-form-item>
             </a-form>
         </a-modal>
 
@@ -187,13 +197,69 @@
                         </a-table>
                     </div>
                 </a-form-item> </a-form> </a-modal>
+
+        <!-- 批量导入模态框 -->
+        <a-modal v-model:visible="importModalVisible" title="批量导入任务" @before-ok="handleImport"
+            @cancel="importModalVisible = false" width="800px">
+            <a-form layout="vertical">
+                <a-form-item label="导入说明">
+                    <a-alert type="info" show-icon>
+                        <template #title>请按以下格式粘贴任务数据，每行一个任务</template>
+                        格式：任务标题|项目名称|负责人ad|优先级|描述|截止日期<br />
+                        优先级选项：HIGH（高）、MEDIUM（中）、LOW（低）<br />
+                        示例：完成需求分析|项目管理系统|admin|HIGH|详细分析用户需求|2025-01-20
+                    </a-alert>
+                </a-form-item>
+                <a-form-item label="任务数据" required>
+                    <a-textarea v-model="importData" placeholder="请粘贴任务数据，每行一个任务"
+                        :auto-size="{ minRows: 10, maxRows: 20 }" />
+                </a-form-item>
+                <a-form-item label="邮件通知">
+                    <a-switch v-model="importEmailEnabled" />
+                    <span style="margin-left: 8px; color: #666; font-size: 12px;">
+                        开启后将向所有责任人发送邮件通知
+                    </span>
+                </a-form-item>
+                <a-form-item label="预览" v-if="parsedTasks.length > 0">
+                    <a-table :columns="previewColumns" :data="parsedTasks" :pagination="false" size="small">
+                        <template #project="{ record }">
+                            <span :class="{ 'text-red-500': !record.projectId }">
+                                {{ record.projectName }}
+                                <span v-if="!record.projectId" class="text-xs">(未找到)</span>
+                            </span>
+                        </template>
+                        <template #assignee="{ record }">
+                            <span :class="{ 'text-red-500': !record.assigneeId }">
+                                {{ record.username || '未指定' }}
+                                <span v-if="record.username && !record.assigneeId" class="text-xs">(未找到)</span>
+                            </span>
+                        </template>
+                        <template #priority="{ record }">
+                            <span :class="{ 'text-red-500': !['HIGH', 'MEDIUM', 'LOW'].includes(record.priority) }">
+                                {{ record.priority }}
+                                <span v-if="!['HIGH', 'MEDIUM', 'LOW'].includes(record.priority)"
+                                    class="text-xs">(无效)</span>
+                            </span>
+                        </template>
+                        <template #dueDate="{ record }">
+                            <span
+                                :class="{ 'text-red-500': record.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(record.dueDate) }">
+                                {{ record.dueDate }}
+                                <span v-if="record.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(record.dueDate)"
+                                    class="text-xs">(格式错误)</span>
+                            </span>
+                        </template>
+                    </a-table>
+                </a-form-item>
+            </a-form>
+        </a-modal>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
-import { IconPlus, IconEmail } from '@arco-design/web-vue/es/icon'
+import { IconPlus, IconEmail, IconUpload } from '@arco-design/web-vue/es/icon'
 import { useTodoStore } from '@/stores/todos'
 import { useProjectStore } from '@/stores/projects'
 import { useUserStore } from '@/stores/user'
@@ -209,6 +275,9 @@ const userStore = useUserStore()
 // 响应式数据
 const modalVisible = ref(false)
 const sendEmailModal = ref(false)
+const importModalVisible = ref(false)
+const importData = ref('')
+const importEmailEnabled = ref(true)
 const isEdit = ref(false)
 const activeTab = ref('pending')
 const selectedProjectId = ref<number | undefined>(undefined)
@@ -237,6 +306,7 @@ const formData = ref<TodoDTO>({
     priority: 'MEDIUM',
     status: 'PROGRESS',
     dueDate: '',
+    emailEnabled: true, // 默认开启邮件通知
     creatorId: 1 // 暂时固定为管理员
 })
 
@@ -335,38 +405,26 @@ const filteredTodos = computed(() => {
 
 // 表单是否有效
 const isFormValid = computed(() => {
-    console.log('🔍 表单验证检查 - 当前表单数据:', formData.value)
+    // 简化验证逻辑，只检查最基本的必填字段
+    const hasTitle = !!(formData.value.title && formData.value.title.trim().length >= 2)
+    const hasProject = !!(formData.value.projectId && formData.value.projectId > 0)
+    const hasAssignee = !!(formData.value.assigneeId && formData.value.assigneeId > 0)
+    const hasPriority = !!(formData.value.priority && formData.value.priority.trim())
+    const hasStatus = !!(formData.value.status && formData.value.status.trim())
 
-    // 检查必填字段
-    if (!formData.value.title?.trim()) {
-        console.log('❌ title 验证失败:', formData.value.title)
-        return false
-    }
-    if (!formData.value.projectId) {
-        console.log('❌ projectId 验证失败:', formData.value.projectId)
-        return false
-    }
-    if (!formData.value.assigneeId) {
-        console.log('❌ assigneeId 验证失败:', formData.value.assigneeId)
-        return false
-    }
-    if (!formData.value.priority) {
-        console.log('❌ priority 验证失败:', formData.value.priority)
-        return false
-    }
-    if (!formData.value.status) {
-        console.log('❌ status 验证失败:', formData.value.status)
-        return false
-    }
+    const isValid = hasTitle && hasProject && hasAssignee && hasPriority && hasStatus
 
-    // 检查字段长度
-    if (formData.value.title.length < 2 || formData.value.title.length > 100) {
-        console.log('❌ title 长度验证失败:', formData.value.title.length)
-        return false
-    }
+    console.log('🔍 表单验证:', {
+        hasTitle,
+        hasProject: `${formData.value.projectId} -> ${hasProject}`,
+        hasAssignee: `${formData.value.assigneeId} -> ${hasAssignee}`,
+        hasPriority: `${formData.value.priority} -> ${hasPriority}`,
+        hasStatus: `${formData.value.status} -> ${hasStatus}`,
+        isValid,
+        formData: formData.value
+    })
 
-    console.log('✅ 表单验证通过')
-    return true
+    return isValid
 })
 
 // 获取优先级标签
@@ -525,6 +583,7 @@ const showCreateModal = () => {
         priority: 'MEDIUM',
         status: 'PROGRESS',
         dueDate: '',
+        emailEnabled: true,
         creatorId: 1
     }
     // 重置搜索状态
@@ -554,6 +613,7 @@ const editTodo = (todo: Todo) => {
         priority: todo.priority,
         status: todo.status,
         dueDate: todo.dueDate,
+        emailEnabled: (todo as any).emailEnabled !== undefined ? (todo as any).emailEnabled : true,
         creatorId: todo.creatorId
     }
     // 重置搜索状态
@@ -818,6 +878,200 @@ const formatDateTime = (date: string | Date | null | undefined) => {
     if (!date) return '';
     return dayjs(date).format('YYYY-MM-DD HH:mm:ss');
 };
+
+// 批量导入相关
+const userCacheVersion = ref(0) // 用于强制刷新计算属性
+
+const parsedTasks = computed(() => {
+    // 依赖userCacheVersion来触发重新计算
+    userCacheVersion.value
+
+    if (!importData.value.trim()) return []
+
+    return importData.value.trim().split('\n').map((line, index) => {
+        const parts = line.split('|')
+        if (parts.length < 6) return null
+
+        // 根据项目名称查找项目ID
+        const projectName = parts[1]?.trim()
+        const project = projectStore.projects.find(p => p.name === projectName)
+        const projectId = project ? project.id : null
+
+        // 根据用户名查找用户ID
+        const username = parts[2]?.trim()
+        let assigneeId = null
+
+        // 从搜索结果缓存中查找用户
+        if (username) {
+            console.log('查找用户:', username)
+            console.log('当前缓存:', userSearchCache)
+
+            // 直接在对应的缓存中查找
+            const cachedUsers = userSearchCache.get(username)
+            if (cachedUsers) {
+                const user = cachedUsers.find(u => u.username === username)
+                if (user) {
+                    assigneeId = user.id
+                    console.log(`找到用户 ${username}, ID: ${assigneeId}`)
+                } else {
+                    console.log(`缓存中有数据但未找到精确匹配的用户: ${username}`)
+                }
+            } else {
+                console.log(`缓存中没有用户: ${username}`)
+            }
+        }
+
+        return {
+            title: parts[0]?.trim() || '',
+            projectId,
+            assigneeId: assigneeId || undefined,
+            priority: parts[3]?.trim() || 'MEDIUM',
+            description: parts[4]?.trim() || '',
+            dueDate: parts[5]?.trim() || '',
+            status: 'PROGRESS',
+            emailEnabled: importEmailEnabled.value,
+            creatorId: 1,
+            // 保存原始数据用于显示
+            projectName,
+            username
+        }
+    }).filter(task => task && task.title)
+})
+
+const previewColumns = [
+    { title: '任务标题', dataIndex: 'title', width: 150 },
+    { title: '项目', dataIndex: 'projectName', slotName: 'project', width: 120 },
+    { title: '负责人', dataIndex: 'username', slotName: 'assignee', width: 120, align: 'center' },
+    { title: '优先级', dataIndex: 'priority', slotName: 'priority', width: 100, align: 'center' },
+    { title: '描述', dataIndex: 'description', width: 150 },
+    { title: '截止日期', dataIndex: 'dueDate', slotName: 'dueDate', width: 120, align: 'center' }
+]
+
+const getProjectNameById = (projectId: number | null) => {
+    if (!projectId) return '无项目'
+    const project = projectStore.projects.find(p => p.id === projectId)
+    return project ? project.name : `项目${projectId}`
+}
+
+const openImportModal = () => {
+    importData.value = ''
+    importEmailEnabled.value = true
+    importModalVisible.value = true
+}
+
+// 监听导入数据变化，自动搜索用户
+let searchUsersTimer: NodeJS.Timeout | null = null
+watch(importData, async (newData: string) => {
+    if (!newData.trim()) return
+
+    // 清除之前的定时器
+    if (searchUsersTimer) {
+        clearTimeout(searchUsersTimer)
+    }
+
+    // 防抖处理
+    searchUsersTimer = setTimeout(async () => {
+        const uniqueUsernames = [...new Set(
+            newData.trim().split('\n')
+                .map((line: string) => line.split('|')[2]?.trim())
+                .filter((username: string | undefined) => username && username.length >= 2)
+        )]
+
+        // 为每个用户名进行搜索
+        for (const username of uniqueUsernames) {
+            if (!userSearchCache.has(username)) {
+                try {
+                    const users = await userStore.searchUsers(username)
+                    userSearchCache.set(username, users || [])
+                    console.log(`缓存用户 ${username}:`, users)
+                    // 触发计算属性重新计算
+                    userCacheVersion.value++
+                } catch (error) {
+                    console.error('搜索用户失败:', username, error)
+                    userSearchCache.set(username, [])
+                    // 触发计算属性重新计算
+                    userCacheVersion.value++
+                }
+            }
+        }
+    }, 1000)
+})
+
+const handleImport = async (): Promise<boolean> => {
+    if (parsedTasks.value.length === 0) {
+        Message.error('请输入有效的任务数据')
+        return false
+    }
+
+    // 先搜索所有需要的用户
+    const uniqueUsernames = [...new Set(
+        importData.value.trim().split('\n')
+            .map(line => line.split('|')[2]?.trim())
+            .filter(username => username)
+    )]
+
+    // 为每个用户名进行搜索
+    for (const username of uniqueUsernames) {
+        if (!userSearchCache.has(username)) {
+            try {
+                console.log('搜索用户:', username)
+                const users = await userStore.searchUsers(username)
+                userSearchCache.set(username, users || [])
+                userCacheVersion.value++
+            } catch (error) {
+                console.error('搜索用户失败:', username, error)
+                userSearchCache.set(username, [])
+                userCacheVersion.value++
+            }
+        }
+    }
+
+    // 检查是否有无效的项目、用户、优先级或日期
+    const validPriorities = ['HIGH', 'MEDIUM', 'LOW']
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+
+    const invalidTasks = parsedTasks.value.filter(task => {
+        if (!task) return true
+
+        // 检查项目
+        if (!task.projectId) return true
+
+        // 检查负责人
+        if (!task.assigneeId) return true
+
+        // 检查优先级
+        if (!validPriorities.includes(task.priority)) return true
+
+        // 检查截止日期格式
+        if (task.dueDate && !dateRegex.test(task.dueDate)) return true
+
+        return false
+    })
+
+    if (invalidTasks.length > 0) {
+        Message.error(`有 ${invalidTasks.length} 个任务的项目、负责人、优先级或日期格式不正确，请检查数据`)
+        return false
+    }
+
+    try {
+        // 批量创建任务
+        let successCount = 0
+        for (const task of parsedTasks.value) {
+            if (task && task.projectId && task.assigneeId) {
+                const { projectName, username, ...todoData } = task
+                await todoStore.createTodo(todoData as TodoDTO)
+                successCount++
+            }
+        }
+
+        Message.success(`成功导入 ${successCount} 个任务`)
+        await todoStore.fetchTodos()
+        return true
+    } catch (error) {
+        Message.error('批量导入失败')
+        return false
+    }
+}
 
 // 页面加载时获取数据
 onMounted(async () => {

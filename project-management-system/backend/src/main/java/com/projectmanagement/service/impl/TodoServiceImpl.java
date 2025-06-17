@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 待办任务服务实现类
@@ -104,6 +105,7 @@ public class TodoServiceImpl extends ServiceImpl<TodoMapper, Todo> implements To
         todo.setPriority(todoDTO.getPriority() != null ? todoDTO.getPriority() : "MEDIUM");
         todo.setStatus(todoDTO.getStatus() != null ? todoDTO.getStatus() : "TODO");
         todo.setDueDate(todoDTO.getDueDate());
+        todo.setEmailEnabled(todoDTO.getEmailEnabled() != null ? todoDTO.getEmailEnabled() : true);
         todo.setCreatorId(todoDTO.getCreatorId());
 
         System.out.println("创建待办任务实体: " + todo);
@@ -156,6 +158,7 @@ public class TodoServiceImpl extends ServiceImpl<TodoMapper, Todo> implements To
         todo.setPriority(todoDTO.getPriority());
         todo.setStatus(todoDTO.getStatus());
         todo.setDueDate(todoDTO.getDueDate());
+        todo.setEmailEnabled(todoDTO.getEmailEnabled() != null ? todoDTO.getEmailEnabled() : true);
 
         if ("DONE".equals(todoDTO.getStatus()) && !"DONE".equals(todo.getStatus())) {
             todo.setCompletedTime(LocalDateTime.now());
@@ -197,7 +200,18 @@ public class TodoServiceImpl extends ServiceImpl<TodoMapper, Todo> implements To
     @Override
     public boolean sendTodoEmail(String email, Long userId) {
         try {
-            List<Todo> todos = userId != null ? getUserTodos(userId) : getTodayTodos();
+            List<Todo> allTodos = userId != null ? getUserTodos(userId) : getTodayTodos();
+
+            // 只发送启用了邮件通知的任务
+            List<Todo> todos = allTodos.stream()
+                    .filter(todo -> todo.getEmailEnabled() != null && todo.getEmailEnabled())
+                    .collect(Collectors.toList());
+
+            // 如果没有启用邮件通知的任务，直接返回成功
+            if (todos.isEmpty()) {
+                System.out.println("📧 用户 " + email + " 没有启用邮件通知的任务，跳过发送");
+                return true;
+            }
 
             // 构建任务列表HTML
             StringBuilder taskListHtml = new StringBuilder();

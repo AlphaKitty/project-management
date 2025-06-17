@@ -91,6 +91,7 @@ export interface TodoDTO {
   priority?: string;
   status?: string;
   dueDate?: string; // 格式：YYYY-MM-DD
+  emailEnabled?: boolean; // 是否启用邮件通知
   creatorId: number;
 }
 

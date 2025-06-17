@@ -1,3 +1,33 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "10.10.41.231",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "平台测试",
+            "database": "ext",
+            "username": "ext",
+            "password": "ext"
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "本地",
+            "database": "project_management",
+            "username": "root",
+            "password": "nullnull"
+        }
+    ]
 }

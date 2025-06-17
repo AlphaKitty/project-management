@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -260,6 +261,73 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         }
 
         // 设置creator和assignee对象
+        for (Project project : projects) {
+            if (project.getCreatorId() != null) {
+                project.setCreator(userMap.get(project.getCreatorId()));
+            }
+            if (project.getAssigneeId() != null) {
+                project.setAssignee(userMap.get(project.getAssigneeId()));
+            }
+        }
+
+        return projects;
+    }
+
+    @Override
+    public List<Project> getProjectOverviewByUser(Long userId) {
+        // 获取用户相关的项目ID集合
+        Set<Long> userRelatedProjectIds = new HashSet<>();
+
+        // 1. 获取用户作为创建人或责任人的项目
+        List<Project> userProjects = projectMapper.selectProjectsByCreatorOrAssignee(userId);
+        for (Project project : userProjects) {
+            userRelatedProjectIds.add(project.getId());
+        }
+
+        // 2. 获取用户负责的待办事项所在的项目
+        QueryWrapper<Todo> todoQuery = new QueryWrapper<>();
+        todoQuery.eq("assignee_id", userId);
+        List<Todo> userTodos = todoMapper.selectList(todoQuery);
+        for (Todo todo : userTodos) {
+            if (todo.getProjectId() != null) {
+                userRelatedProjectIds.add(todo.getProjectId());
+            }
+        }
+
+        // 如果没有相关项目，返回空列表
+        if (userRelatedProjectIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 3. 获取这些项目的详细信息（按创建时间排序）
+        QueryWrapper<Project> projectQuery = new QueryWrapper<>();
+        projectQuery.in("id", userRelatedProjectIds)
+                .orderByAsc("create_time");
+        List<Project> projects = projectMapper.selectList(projectQuery);
+
+        if (projects.isEmpty()) {
+            return projects;
+        }
+
+        // 4. 批量设置用户信息
+        Set<Long> userIds = new HashSet<>();
+        for (Project project : projects) {
+            if (project.getCreatorId() != null) {
+                userIds.add(project.getCreatorId());
+            }
+            if (project.getAssigneeId() != null) {
+                userIds.add(project.getAssigneeId());
+            }
+        }
+
+        Map<Long, User> userMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<User> users = userMapper.selectBatchIds(userIds);
+            for (User user : users) {
+                userMap.put(user.getId(), user);
+            }
+        }
+
         for (Project project : projects) {
             if (project.getCreatorId() != null) {
                 project.setCreator(userMap.get(project.getCreatorId()));

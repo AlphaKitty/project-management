@@ -80,7 +80,6 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
   mapper-locations: classpath*:/mapper/**/*.xml
-
 # Springdoc OpenAPI 配置（临时禁用）
 # springdoc:
 #   api-docs:

@@ -140,7 +140,8 @@ public class ProjectController {
             return Result.unauthorized();
         }
 
-        List<Project> projects = projectService.getProjectOverview();
+        // 只返回当前用户相关的项目概览
+        List<Project> projects = projectService.getProjectOverviewByUser(currentUser.getId());
         return Result.success(projects);
     }
 

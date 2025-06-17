@@ -67,6 +67,11 @@ public interface ProjectService extends IService<Project> {
     List<Project> getProjectOverview();
 
     /**
+     * 根据用户ID获取项目概览（用户相关的项目）
+     */
+    List<Project> getProjectOverviewByUser(Long userId);
+
+    /**
      * 更新所有项目的工作计划
      */
     void updateAllProjectWorkPlans();
