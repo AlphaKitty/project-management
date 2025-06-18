@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户管理控制器
@@ -24,6 +25,16 @@ public class UserController {
         return Result.success(users);
     }
 
+    /**
+     * 获取数据看板用户数据（性能优化版）
+     * 只返回有任务的活跃用户和必要字段
+     */
+    @GetMapping("/dashboard")
+    public Result<List<Map<String, Object>>> getDashboardUsers() {
+        List<Map<String, Object>> users = userService.getDashboardUsers();
+        return Result.success(users);
+    }
+
     @GetMapping("/{id}")
     public Result<User> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
@@ -38,4 +49,4 @@ public class UserController {
         List<User> users = userService.searchUsers(keyword);
         return Result.success(users);
     }
-} 
+}

@@ -251,7 +251,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Message } from '@arco-design/web-vue'
+import { Message, Modal } from '@arco-design/web-vue'
 import { IconPlus, IconEye, IconDownload, IconRefresh } from '@arco-design/web-vue/es/icon'
 import * as XLSX from 'xlsx'
 import { useProjectStore } from '@/stores/projects'
@@ -474,12 +474,21 @@ const editProject = (project: Project) => {
 
 // 删除项目
 const deleteProject = async (project: Project) => {
-  try {
-    await projectStore.deleteProject(project.id)
-    Message.success('项目删除成功')
-  } catch (error) {
-    Message.error('项目删除失败')
-  }
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除项目 "${project.name}" 吗？删除后无法恢复。`,
+    okText: '确认删除',
+    cancelText: '取消',
+    okButtonProps: { status: 'danger' },
+    onOk: async () => {
+      try {
+        await projectStore.deleteProject(project.id)
+        Message.success('项目删除成功')
+      } catch (error) {
+        Message.error('项目删除失败')
+      }
+    }
+  })
 }
 
 // 提交表单

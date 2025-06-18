@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户Mapper接口
@@ -34,4 +35,25 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("SELECT * FROM users WHERE status = 1 ORDER BY username ASC")
     List<User> selectActiveUsers();
-} 
+
+    /**
+     * 查询数据看板用户数据（性能优化版）
+     * 只返回有任务分配的用户，且只返回必要字段
+     */
+    @Select("SELECT DISTINCT " +
+            "u.id, " +
+            "u.username, " +
+            "u.nickname, " +
+            "u.department, " +
+            "u.position, " +
+            "u.status " +
+            "FROM users u " +
+            "WHERE u.status = 1 " +
+            "AND (" +
+            "  EXISTS (SELECT 1 FROM todos t WHERE t.assignee_id = u.id) " +
+            "  OR EXISTS (SELECT 1 FROM projects p WHERE p.assignee_id = u.id) " +
+            "  OR EXISTS (SELECT 1 FROM projects p WHERE p.creator_id = u.id) " +
+            ") " +
+            "ORDER BY u.username ASC")
+    List<Map<String, Object>> selectDashboardUsers();
+}

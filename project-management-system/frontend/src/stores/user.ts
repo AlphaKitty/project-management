@@ -6,6 +6,7 @@ import type { User } from "@/types";
 export const useUserStore = defineStore("user", () => {
   // 状态
   const users = ref<User[]>([]);
+  const dashboardUsers = ref<any[]>([]); // 数据看板专用用户数据
   const currentUser = ref<User | null>(null);
   const loading = ref(false);
   const isLoaded = ref(false); // 是否已加载过数据
@@ -35,6 +36,26 @@ export const useUserStore = defineStore("user", () => {
       return response.data;
     } catch (error) {
       console.error("获取用户列表失败:", error);
+      throw error;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  // 获取数据看板用户数据（性能优化版）
+  const fetchDashboardUsers = async (force = false) => {
+    // 如果已经加载过且不强制刷新，直接返回
+    if (dashboardUsers.value.length > 0 && !force) {
+      return dashboardUsers.value;
+    }
+
+    try {
+      loading.value = true;
+      const response = await userApi.getDashboardUsers();
+      dashboardUsers.value = response.data;
+      return response.data;
+    } catch (error) {
+      console.error("获取数据看板用户数据失败:", error);
       throw error;
     } finally {
       loading.value = false;
@@ -108,6 +129,13 @@ export const useUserStore = defineStore("user", () => {
 
   // 根据ID查找用户
   const getUserById = (id: number) => {
+    // 先从数据看板用户中查找
+    const dashboardUser = dashboardUsers.value.find((user) => user.id === id);
+    if (dashboardUser) {
+      return dashboardUser;
+    }
+
+    // 再从完整用户列表中查找
     return users.value.find((user) => user.id === id);
   };
 
@@ -157,6 +185,7 @@ export const useUserStore = defineStore("user", () => {
   return {
     // 状态
     users,
+    dashboardUsers,
     currentUser,
     loading,
     isLoaded,
@@ -168,6 +197,7 @@ export const useUserStore = defineStore("user", () => {
 
     // 方法
     fetchUsers,
+    fetchDashboardUsers, // 新增：数据看板专用
     searchUsers,
     fetchCurrentUser,
     setCurrentUser,

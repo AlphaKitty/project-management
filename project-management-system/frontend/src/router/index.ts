@@ -64,6 +64,15 @@ const routes: RouteRecordRaw[] = [
           title: "邮件规则管理",
         },
       },
+      {
+        path: "data-dashboard",
+        name: "DataDashboard",
+        component: () => import("@/views/DataDashboard.vue"),
+        meta: {
+          title: "数据看板",
+          requiresSpecialAccess: true,
+        },
+      },
     ],
   },
 ];
@@ -82,6 +91,17 @@ router.beforeEach((to, from, next) => {
   // 设置页面标题
   if (to.meta?.title) {
     document.title = `${to.meta.title} - 项目管理系统`;
+  }
+
+  // 检查特殊权限访问（数据看板等）
+  if (
+    to.meta?.requiresSpecialAccess &&
+    userStore.currentUser?.username !== "barlin.zhang"
+  ) {
+    // 权限不足，跳转到仪表盘并显示错误
+    next("/dashboard");
+    // 注意：这里我们不能在路由守卫中直接调用Message，需要在组件中处理
+    return;
   }
 
   // 检查是否需要登录

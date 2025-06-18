@@ -37,6 +37,12 @@
             </template>
             邮件规则管理
           </a-menu-item>
+          <a-menu-item key="data-dashboard" v-if="isBarlinZhang">
+            <template #icon>
+              <icon-bar-chart />
+            </template>
+            数据看板
+          </a-menu-item>
         </a-menu>
       </a-layout-sider>
 
@@ -98,7 +104,8 @@ import {
   IconFile,
   IconPlus,
   IconPoweroff,
-  IconEmail
+  IconEmail,
+  IconBarChart
 } from '@arco-design/web-vue/es/icon'
 import { useUserStore } from '../stores/user'
 
@@ -114,6 +121,7 @@ const currentRoute = computed(() => {
   if (path.startsWith('/todos')) return 'todos'
   if (path.startsWith('/reports')) return 'reports'
   if (path.startsWith('/email-rules')) return 'email-rules'
+  if (path.startsWith('/data-dashboard')) return 'data-dashboard'
   return 'dashboard'
 })
 
@@ -124,7 +132,8 @@ const pageTitle = computed(() => {
     'projects': '项目管理',
     'todos': '待办任务',
     'reports': '项目报告',
-    'email-rules': '邮件规则管理'
+    'email-rules': '邮件规则管理',
+    'data-dashboard': '数据看板'
   }
   return titles[currentRoute.value] || '项目管理系统'
 })
@@ -161,7 +170,8 @@ const handleMenuClick = (key: string) => {
     'projects': '/projects',
     'todos': '/todos',
     'reports': '/reports',
-    'email-rules': '/email-rules'
+    'email-rules': '/email-rules',
+    'data-dashboard': '/data-dashboard'
   }
 
   if (routes[key] && route.path !== routes[key]) {

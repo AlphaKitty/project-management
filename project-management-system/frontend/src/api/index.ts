@@ -149,6 +149,12 @@ export const userApi = {
     return request.get("/users");
   },
 
+  // 获取数据看板用户数据（性能优化版）
+  // 只返回有任务的活跃用户和必要字段
+  getDashboardUsers() {
+    return request.get("/users/dashboard");
+  },
+
   // 根据ID获取用户
   getUser(id: number) {
     return request.get(`/users/${id}`);
