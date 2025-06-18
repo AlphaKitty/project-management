@@ -100,7 +100,7 @@
                                     </a-tag>
                                 </template>
                                 <template #progress="{ record }">
-                                    <a-progress :percent="record.progress" size="small" />
+                                    <a-progress :percent="record.progress / 100" size="small" />
                                 </template>
                                 <template #taskStats="{ record }">
                                     <div class="task-stats">
@@ -180,6 +180,109 @@
                         </div>
                     </div>
                 </a-tab-pane>
+
+                <a-tab-pane key="ranking" title="综合排名分析">
+                    <div class="analysis-content">
+                        <!-- 计算规则说明 -->
+                        <a-card title="排名计算规则" class="rule-card">
+                            <div class="rule-content">
+                                <h4>项目排名计算公式：</h4>
+                                <p><strong>项目得分 = 进度权重(35%) + 效率权重(25%) + 难度权重(25%) + 质量权重(15%)</strong></p>
+                                <ul>
+                                    <li><strong>进度权重：</strong>项目完成进度 × 0.35</li>
+                                    <li><strong>效率权重：</strong>任务完成率 × 0.25</li>
+                                    <li><strong>难度权重：</strong>项目规模难度得分 × 0.25（任务数越多得分越高）</li>
+                                    <li><strong>质量权重：</strong>项目执行质量得分 × 0.15（基于逾期任务率等）</li>
+                                </ul>
+
+                                <h4>人员排名计算公式：</h4>
+                                <p><strong>人员得分 = 完成率权重(30%) + 难度权重(25%) + 活跃度权重(25%) + 质量权重(20%)</strong></p>
+                                <ul>
+                                    <li><strong>完成率权重：</strong>任务完成率 × 0.30</li>
+                                    <li><strong>难度权重：</strong>承担工作量难度得分 × 0.25（任务数越多得分越高）</li>
+                                    <li><strong>活跃度权重：</strong>近期活跃度得分 × 0.25</li>
+                                    <li><strong>质量权重：</strong>按时完成率 × 0.20</li>
+                                </ul>
+
+                                <div class="rule-note">
+                                    <h5>📌 核心优化理念：</h5>
+                                    <p>• <strong>难度正向激励：</strong>任务数量多的项目/人员获得难度加分，体现承担更大责任</p>
+                                    <p>• <strong>质量合理评估：</strong>基于实际逾期情况而非待办数量来评估质量</p>
+                                    <p>• <strong>力求公平公正：</strong>兼顾进度、效率、难度和质量的平衡，尽量做到公平公正</p>
+                                </div>
+                            </div>
+                        </a-card>
+
+                        <!-- 排名展示 -->
+                        <div class="chart-row">
+                            <a-card title="项目综合排名" class="chart-card">
+                                <div ref="projectRankingChart" class="chart-container"></div>
+                            </a-card>
+
+                            <a-card title="人员综合排名" class="chart-card">
+                                <div ref="userRankingChart" class="chart-container"></div>
+                            </a-card>
+                        </div>
+
+                        <!-- 排名详细表格 -->
+                        <div class="chart-row">
+                            <a-card title="项目排名详情" class="data-table-card">
+                                <a-table :columns="projectRankingColumns" :data="projectRankingData" :loading="loading"
+                                    :pagination="{ pageSize: 10 }">
+                                    <template #rank="{ record, rowIndex }">
+                                        <div class="rank-badge">
+                                            <a-tag :color="getRankColor(rowIndex + 1)">
+                                                第{{ rowIndex + 1 }}名
+                                            </a-tag>
+                                        </div>
+                                    </template>
+                                    <template #score="{ record }">
+                                        <div class="score-display">
+                                            <span class="score-value">{{ record.totalScore.toFixed(2) }}</span>
+                                            <div class="score-breakdown">
+                                                <small>进度:{{ record.progressScore.toFixed(1) }} | 效率:{{
+                                                    record.efficiencyScore.toFixed(1) }} | 难度:{{
+                                                        record.difficultyScore.toFixed(1) }} | 质量:{{
+                                                        record.qualityScore.toFixed(1) }}</small>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </a-table>
+                            </a-card>
+
+                            <a-card title="人员排名详情" class="data-table-card">
+                                <a-table :columns="userRankingColumns" :data="userRankingData" :loading="loading"
+                                    :pagination="{ pageSize: 10 }">
+                                    <template #rank="{ record, rowIndex }">
+                                        <div class="rank-badge">
+                                            <a-tag :color="getRankColor(rowIndex + 1)">
+                                                第{{ rowIndex + 1 }}名
+                                            </a-tag>
+                                        </div>
+                                    </template>
+                                    <template #user="{ record }">
+                                        <div class="user-info">
+                                            <a-avatar size="small">{{ record.username.charAt(0).toUpperCase()
+                                                }}</a-avatar>
+                                            <span class="user-name">{{ record.nickname || record.username }}</span>
+                                        </div>
+                                    </template>
+                                    <template #score="{ record }">
+                                        <div class="score-display">
+                                            <span class="score-value">{{ record.totalScore.toFixed(2) }}</span>
+                                            <div class="score-breakdown">
+                                                <small>完成:{{ record.completionScore.toFixed(1) }} | 难度:{{
+                                                    record.difficultyScore.toFixed(1) }} | 活跃:{{
+                                                        record.activityScore.toFixed(1) }} | 质量:{{
+                                                        record.qualityScore.toFixed(1) }}</small>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </a-table>
+                            </a-card>
+                        </div>
+                    </div>
+                </a-tab-pane>
             </a-tabs>
         </div>
     </div>
@@ -205,6 +308,8 @@ const departmentChart = ref<HTMLDivElement>()
 const systemActivityChart = ref<HTMLDivElement>()
 const taskTrendChart = ref<HTMLDivElement>()
 const efficiencyAnalysisChart = ref<HTMLDivElement>()
+const projectRankingChart = ref<HTMLDivElement>()
+const userRankingChart = ref<HTMLDivElement>()
 
 // 图表实例对象
 let chartInstances: { [key: string]: echarts.ECharts } = {}
@@ -240,6 +345,8 @@ const statistics = ref({
 
 const projectAnalysisData = ref<any[]>([])
 const userAnalysisData = ref<any[]>([])
+const projectRankingData = ref<any[]>([])
+const userRankingData = ref<any[]>([])
 
 // Stores
 const projectStore = useProjectStore()
@@ -268,6 +375,23 @@ const userColumns = [
     { title: '活跃度分数', dataIndex: 'activityScore', width: 100 }
 ]
 
+const projectRankingColumns = [
+    { title: '排名', dataIndex: 'rank', slotName: 'rank', width: 50, align: 'center' },
+    { title: '项目名称', dataIndex: 'name', width: 150 },
+    { title: '负责人', dataIndex: 'assigneeName', width: 80 },
+    { title: '得分', dataIndex: 'score', slotName: 'score' },
+    { title: '任务完成率', dataIndex: 'completionRate', width: 60, align: 'center' },
+    { title: '项目进度', dataIndex: 'progress', width: 60, align: 'center' },
+]
+
+const userRankingColumns = [
+    { title: '排名', dataIndex: 'rank', slotName: 'rank', width: 50, align: 'center' },
+    { title: '用户', dataIndex: 'user', slotName: 'user', width: 120 },
+    { title: '得分', dataIndex: 'score', slotName: 'score' },
+    { title: '任务完成率', dataIndex: 'completionRate', width: 60, align: 'center' },
+    { title: '活跃度', dataIndex: 'activityScore', width: 100 }
+]
+
 // 工具函数
 const getStatusLabel = (status: string) => {
     return StatusLabels[status as keyof typeof StatusLabels] || status
@@ -281,6 +405,14 @@ const getEfficiencyClass = (efficiency: number) => {
     if (efficiency >= 80) return 'high'
     if (efficiency >= 60) return 'medium'
     return 'low'
+}
+
+const getRankColor = (rank: number) => {
+    if (rank === 1) return 'gold'
+    if (rank === 2) return 'orange'
+    if (rank === 3) return 'red'
+    if (rank <= 5) return 'blue'
+    return 'gray'
 }
 
 // 计算用户活跃度分数（基于操作行为而非登录）
@@ -450,6 +582,116 @@ const loadAnalysisData = async () => {
             activityScore
         }
     })
+
+    // 计算排名数据
+    calculateRankingData()
+}
+
+const calculateRankingData = () => {
+    // 计算项目排名
+    projectRankingData.value = projectAnalysisData.value.map(project => {
+        const progressScore = (project.progress || 0) * 0.35
+        const efficiencyScore = (project.completionRate || 0) * 0.25
+        const difficultyScore = calculateProjectDifficulty(project) * 0.25
+        const qualityScore = calculateProjectQuality(project) * 0.15
+
+        return {
+            ...project,
+            progressScore,
+            efficiencyScore,
+            difficultyScore,
+            qualityScore,
+            totalScore: progressScore + efficiencyScore + difficultyScore + qualityScore
+        }
+    }).sort((a, b) => b.totalScore - a.totalScore)
+
+    // 计算用户排名
+    userRankingData.value = userAnalysisData.value.map(user => {
+        const completionScore = (user.efficiency || 0) * 0.30
+        const difficultyScore = calculateUserDifficulty(user) * 0.25
+        const activityScore = (user.activityScore || 0) * 0.25
+        const qualityScore = calculateUserQuality(user) * 0.20
+
+        return {
+            ...user,
+            completionScore,
+            difficultyScore,
+            activityScore: activityScore,
+            qualityScore,
+            totalScore: completionScore + difficultyScore + activityScore + qualityScore,
+            completionRate: user.efficiency
+        }
+    }).sort((a, b) => b.totalScore - a.totalScore)
+}
+
+// 项目难度计算 - 基于任务总数，任务越多难度越高
+const calculateProjectDifficulty = (project: any) => {
+    const totalTasks = project.pendingTasks + project.inProgressTasks + project.completedTasks
+    if (totalTasks === 0) return 0
+
+    // 使用对数函数平滑处理任务数量，避免任务数极大时得分过高
+    // 基准：10个任务得60分，30个任务得80分，100个任务得100分
+    const baseScore = Math.min(100, Math.log(totalTasks + 1) / Math.log(101) * 100)
+
+    // 考虑任务类型分布，进行中任务比重高的项目难度稍高
+    const inProgressRatio = totalTasks > 0 ? project.inProgressTasks / totalTasks : 0
+    const difficultyBonus = inProgressRatio * 10 // 最多10分加成
+
+    return Math.min(100, baseScore + difficultyBonus)
+}
+
+// 项目质量计算 - 基于实际执行效果而非待办任务数
+const calculateProjectQuality = (project: any) => {
+    const totalTasks = project.pendingTasks + project.inProgressTasks + project.completedTasks
+    if (totalTasks === 0) return 85 // 无任务项目给予中等偏上质量分
+
+    // 基础质量得分：基于完成任务的比例
+    const completionRatio = project.completedTasks / totalTasks
+    const baseQuality = completionRatio * 60 // 完成率贡献最多60分
+
+    // 执行效率加分：进行中任务说明项目在积极推进
+    const progressRatio = project.inProgressTasks / totalTasks
+    const progressBonus = progressRatio * 20 // 最多20分
+
+    // 项目活跃度加分：有任务活动的项目质量更高
+    const activityBonus = totalTasks > 5 ? 20 : totalTasks * 4 // 大项目给固定20分，小项目按任务数
+
+    return Math.min(100, baseQuality + progressBonus + activityBonus)
+}
+
+// 用户难度计算 - 基于承担的工作量，工作量越大难度越高
+const calculateUserDifficulty = (user: any) => {
+    const totalTasks = user.pendingTasks + user.inProgressTasks + user.completedTasks
+    if (totalTasks === 0) return 0
+
+    // 使用平方根函数，让工作量差异更平滑
+    // 基准：5个任务得50分，20个任务得75分，50个任务得100分
+    const baseScore = Math.min(100, Math.sqrt(totalTasks / 50) * 100)
+
+    // 考虑任务状态分布，进行中任务多的用户当前难度更高
+    const workloadPressure = totalTasks > 0 ? (user.pendingTasks + user.inProgressTasks) / totalTasks : 0
+    const pressureBonus = workloadPressure * 15 // 最多15分压力加成
+
+    return Math.min(100, baseScore + pressureBonus)
+}
+
+// 用户质量计算 - 基于按时完成率和逾期情况
+const calculateUserQuality = (user: any) => {
+    const totalTasks = user.pendingTasks + user.inProgressTasks + user.completedTasks
+    if (totalTasks === 0) return 85 // 无任务用户给予中等偏上质量分
+
+    // 基础质量：完成任务的比例
+    const completionRatio = user.completedTasks / totalTasks
+    const baseQuality = completionRatio * 70 // 完成率最多贡献70分
+
+    // 逾期惩罚：逾期任务会扣分
+    const overdueRatio = user.overdueTasks / totalTasks
+    const overduePenalty = overdueRatio * 30 // 逾期率最多扣30分
+
+    // 活跃度奖励：有一定任务量的用户给予奖励
+    const activityBonus = totalTasks >= 3 ? 30 : totalTasks * 10
+
+    return Math.max(0, Math.min(100, baseQuality + activityBonus - overduePenalty))
 }
 
 // 刷新数据
@@ -475,6 +717,8 @@ const initCharts = async () => {
         initUserCharts()
     } else if (activeTab.value === 'system') {
         initSystemCharts()
+    } else if (activeTab.value === 'ranking') {
+        initRankingCharts()
     }
 }
 
@@ -824,6 +1068,70 @@ const initSystemCharts = () => {
     }
 }
 
+const initRankingCharts = () => {
+    // 项目排名图表
+    if (projectRankingChart.value) {
+        if (chartInstances['projectRanking']) {
+            chartInstances['projectRanking'].dispose()
+        }
+        chartInstances['projectRanking'] = echarts.init(projectRankingChart.value)
+
+        const top10Projects = projectRankingData.value.slice(0, 10)
+
+        chartInstances['projectRanking'].setOption({
+            tooltip: { trigger: 'axis' },
+            xAxis: {
+                type: 'category',
+                data: top10Projects.map(p => p.name.length > 8 ? p.name.substr(0, 8) + '...' : p.name),
+                axisLabel: { rotate: 45 }
+            },
+            yAxis: { type: 'value', max: 100 },
+            series: [{
+                name: '综合得分',
+                type: 'bar',
+                data: top10Projects.map(p => p.totalScore.toFixed(2)),
+                itemStyle: {
+                    color: (params: any) => {
+                        const colors = ['#FFD700', '#FFA500', '#FF6347', '#4169E1', '#4169E1', '#4169E1', '#4169E1', '#4169E1', '#4169E1', '#4169E1']
+                        return colors[params.dataIndex] || '#4169E1'
+                    }
+                }
+            }]
+        })
+    }
+
+    // 用户排名图表
+    if (userRankingChart.value) {
+        if (chartInstances['userRanking']) {
+            chartInstances['userRanking'].dispose()
+        }
+        chartInstances['userRanking'] = echarts.init(userRankingChart.value)
+
+        const top10Users = userRankingData.value.slice(0, 10)
+
+        chartInstances['userRanking'].setOption({
+            tooltip: { trigger: 'axis' },
+            xAxis: {
+                type: 'category',
+                data: top10Users.map(u => u.nickname || u.username),
+                axisLabel: { rotate: 45 }
+            },
+            yAxis: { type: 'value', max: 100 },
+            series: [{
+                name: '综合得分',
+                type: 'bar',
+                data: top10Users.map(u => u.totalScore.toFixed(2)),
+                itemStyle: {
+                    color: (params: any) => {
+                        const colors = ['#FFD700', '#FFA500', '#FF6347', '#4169E1', '#4169E1', '#4169E1', '#4169E1', '#4169E1', '#4169E1', '#4169E1']
+                        return colors[params.dataIndex] || '#4169E1'
+                    }
+                }
+            }]
+        })
+    }
+}
+
 // 生命周期
 onMounted(async () => {
     await loadStatistics()
@@ -965,6 +1273,71 @@ onUnmounted(() => {
     color: #ff4d4f;
 }
 
+.rule-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.rule-content h4 {
+    color: #1890ff;
+    margin-bottom: 10px;
+}
+
+.rule-content ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.rule-content li {
+    margin-bottom: 5px;
+}
+
+.rank-badge {
+    display: flex;
+    align-items: center;
+}
+
+.score-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.score-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1890ff;
+}
+
+.score-breakdown {
+    margin-top: 4px;
+    color: #666;
+    font-size: 11px;
+}
+
+.rule-note {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-left: 4px solid #1890ff;
+    border-radius: 4px;
+}
+
+.rule-note h5 {
+    color: #1890ff;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.rule-note p {
+    margin-bottom: 5px;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
 @media (max-width: 768px) {
     .chart-row {
         grid-template-columns: 1fr;
@@ -973,5 +1346,49 @@ onUnmounted(() => {
     .overview-cards {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     }
+}
+
+.rule-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.rule-content h4 {
+    color: #1890ff;
+    margin-bottom: 10px;
+}
+
+.rule-content ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.rule-content li {
+    margin-bottom: 5px;
+}
+
+.rank-badge {
+    display: flex;
+    align-items: center;
+}
+
+.score-display {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.score-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #1890ff;
+}
+
+.score-breakdown {
+    margin-top: 4px;
+    color: #666;
+    font-size: 11px;
 }
 </style>

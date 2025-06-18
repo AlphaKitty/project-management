@@ -448,11 +448,16 @@ const getStatusLabel = (todo: Todo) => {
         }
         return '已完成'
     } else if (todo.dueDate) {
-        // 未完成任务：检查是否逾期
+        // 未完成任务：检查是否逾期或即将逾期
         const today = new Date()
+        today.setHours(0, 0, 0, 0) // 设置为今天的开始时间
         const dueDate = new Date(todo.dueDate)
+        dueDate.setHours(23, 59, 59, 999) // 设置为截止日的结束时间
+
         if (dueDate < today) {
             return '已逾期'
+        } else if (dueDate.toDateString() === today.toDateString()) {
+            return '即将逾期'
         }
     }
     return StatusLabels[todo.status as keyof typeof StatusLabels] || todo.status
@@ -469,11 +474,16 @@ const getStatusColor = (todo: Todo) => {
         }
         return 'green'
     } else if (todo.dueDate) {
-        // 未完成任务：检查是否逾期
+        // 未完成任务：检查是否逾期或即将逾期
         const today = new Date()
+        today.setHours(0, 0, 0, 0) // 设置为今天的开始时间
         const dueDate = new Date(todo.dueDate)
+        dueDate.setHours(23, 59, 59, 999) // 设置为截止日的结束时间
+
         if (dueDate < today) {
             return 'red' // 逾期显示红色
+        } else if (dueDate.toDateString() === today.toDateString()) {
+            return 'orange' // 即将逾期显示橙色
         }
     }
     return StatusColors[todo.status as keyof typeof StatusColors] || 'gray'

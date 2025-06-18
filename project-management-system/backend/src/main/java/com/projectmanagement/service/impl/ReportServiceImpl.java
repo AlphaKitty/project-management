@@ -179,7 +179,10 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
         }
 
         // 查询所有相关项目并按创建时间升序排序
-        Map<Long, com.projectmanagement.entity.Project> projectMap = todos.stream()
+        Map<Long, com.projectmanagement.entity.Project> projectMap = new java.util.LinkedHashMap<>();
+
+        // 首先添加有待办任务的项目
+        todos.stream()
                 .map(Todo::getProject)
                 .filter(p -> p != null)
                 .distinct()
@@ -192,11 +195,19 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
                         return -1;
                     return a.getCreateTime().compareTo(b.getCreateTime());
                 })
-                .collect(Collectors.toMap(
-                        com.projectmanagement.entity.Project::getId,
-                        p -> p,
-                        (a, b) -> a,
-                        java.util.LinkedHashMap::new));
+                .forEach(p -> projectMap.put(p.getId(), p));
+
+        // 然后添加指定的项目（如果不在上面的列表中）
+        if (projectIds != null && !projectIds.isEmpty()) {
+            for (Long projectId : projectIds) {
+                if (!projectMap.containsKey(projectId)) {
+                    com.projectmanagement.entity.Project project = projectMapper.selectById(projectId);
+                    if (project != null) {
+                        projectMap.put(projectId, project);
+                    }
+                }
+            }
+        }
 
         // 分类待办
         List<Todo> completedTodos = todos.stream()
@@ -241,81 +252,44 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
 
         // 本期工作
         content.append("### 本期工作\n");
-        if (!currentTodos.isEmpty()) {
-            for (com.projectmanagement.entity.Project project : projectMap.values()) {
-                List<Todo> projectTodos = currentTodos.stream()
-                        .filter(todo -> project.getId().equals(todo.getProjectId()))
-                        .sorted(this::compareTodos)
-                        .collect(Collectors.toList());
-                if (!projectTodos.isEmpty()) {
-                    content.append("\n#### ").append(project.getName()).append("\n");
-                    for (Todo todo : projectTodos) {
-                        content.append("- ")
-                                .append(getPriorityLabel(todo.getPriority()))
-                                .append(getStatusLabel(todo.getStatus()))
-                                .append(todo.getTitle());
-                        if (todo.getAssignee() != null) {
-                            content.append("（").append(todo.getAssignee().getNickname()).append("）");
-                        }
-                        if ("DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null) {
-                            content.append(" - 完成时间：").append(todo.getCompletedTime().toLocalDate());
-                        } else if (todo.getDueDate() != null) {
-                            content.append(" - 截止：").append(todo.getDueDate());
-                        }
-                        if (todo.getDueDate() != null) {
-                            java.time.LocalDate due = todo.getDueDate();
-                            if ("DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null) {
-                                java.time.LocalDate completed = todo.getCompletedTime().toLocalDate();
-                                long diff = java.time.temporal.ChronoUnit.DAYS.between(completed, due);
-                                if (diff > 0) {
-                                    content.append("，提前").append(diff).append("天完成");
-                                } else if (diff == 0) {
-                                    content.append("，按时完成");
-                                } else {
-                                    content.append("，逾期").append(Math.abs(diff)).append("天完成");
-                                }
-                            } else {
-                                long diff = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), due);
-                                if (diff > 0) {
-                                    content.append("，剩余").append(diff).append("天");
-                                } else if (diff == 0) {
-                                    content.append("，今天截止");
-                                } else {
-                                    content.append("，已逾期").append(Math.abs(diff)).append("天");
-                                }
-                            }
-                        }
-                        content.append("\n");
-                    }
-                }
-            }
-        } else {
-            content.append("- 暂无本期工作\n");
-        }
-        content.append("\n");
+        boolean hasCurrentWork = false;
 
-        // 下期计划
-        String nextPeriod = type.equals("WEEKLY") ? "下周"
-                : type.equals("BIWEEKLY") ? "下两周" : type.equals("MONTHLY") ? "下月" : "下阶段";
-        content.append("### ").append(nextPeriod).append("计划\n");
-        if (!nextTodos.isEmpty()) {
-            for (com.projectmanagement.entity.Project project : projectMap.values()) {
-                List<Todo> projectTodos = nextTodos.stream()
-                        .filter(todo -> project.getId().equals(todo.getProjectId()))
-                        .sorted(this::compareTodos)
-                        .collect(Collectors.toList());
-                if (!projectTodos.isEmpty()) {
-                    content.append("\n#### ").append(project.getName()).append("\n");
-                    for (Todo todo : projectTodos) {
-                        content.append("- ")
-                                .append(getPriorityLabel(todo.getPriority()))
-                                .append(todo.getTitle());
-                        if (todo.getAssignee() != null) {
-                            content.append("（").append(todo.getAssignee().getNickname()).append("）");
-                        }
-                        if (todo.getDueDate() != null) {
-                            content.append(" - 截止：").append(todo.getDueDate());
-                            java.time.LocalDate due = todo.getDueDate();
+        for (com.projectmanagement.entity.Project project : projectMap.values()) {
+            List<Todo> projectTodos = currentTodos.stream()
+                    .filter(todo -> project.getId().equals(todo.getProjectId()))
+                    .sorted(this::compareTodos)
+                    .collect(Collectors.toList());
+
+            content.append("\n#### ").append(project.getName()).append("\n");
+            hasCurrentWork = true;
+
+            if (!projectTodos.isEmpty()) {
+                for (Todo todo : projectTodos) {
+                    content.append("- ")
+                            .append(getPriorityLabel(todo.getPriority()))
+                            .append(getStatusLabel(todo.getStatus()))
+                            .append(todo.getTitle());
+                    if (todo.getAssignee() != null) {
+                        content.append("（").append(todo.getAssignee().getNickname()).append("）");
+                    }
+                    if ("DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null) {
+                        content.append(" - 完成时间：").append(todo.getCompletedTime().toLocalDate());
+                    } else if (todo.getDueDate() != null) {
+                        content.append(" - 截止：").append(todo.getDueDate());
+                    }
+                    if (todo.getDueDate() != null) {
+                        java.time.LocalDate due = todo.getDueDate();
+                        if ("DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null) {
+                            java.time.LocalDate completed = todo.getCompletedTime().toLocalDate();
+                            long diff = java.time.temporal.ChronoUnit.DAYS.between(completed, due);
+                            if (diff > 0) {
+                                content.append("，提前").append(diff).append("天完成");
+                            } else if (diff == 0) {
+                                content.append("，按时完成");
+                            } else {
+                                content.append("，逾期").append(Math.abs(diff)).append("天完成");
+                            }
+                        } else {
                             long diff = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), due);
                             if (diff > 0) {
                                 content.append("，剩余").append(diff).append("天");
@@ -325,11 +299,70 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
                                 content.append("，已逾期").append(Math.abs(diff)).append("天");
                             }
                         }
-                        content.append("\n");
                     }
+                    content.append("\n");
                 }
             }
-        } else {
+
+            // 为没有待办任务的项目生成项目整体状态
+            if (projectTodos.isEmpty()) {
+                String projectStatus = generateProjectOverallStatus(project, "current");
+                content.append("- ").append(projectStatus).append("\n");
+            }
+        }
+
+        if (!hasCurrentWork) {
+            content.append("- 暂无本期工作\n");
+        }
+        content.append("\n");
+
+        // 下期计划
+        String nextPeriod = type.equals("WEEKLY") ? "下周"
+                : type.equals("BIWEEKLY") ? "下两周" : type.equals("MONTHLY") ? "下月" : "下阶段";
+        content.append("### ").append(nextPeriod).append("计划\n");
+        boolean hasNextPlan = false;
+
+        for (com.projectmanagement.entity.Project project : projectMap.values()) {
+            List<Todo> projectTodos = nextTodos.stream()
+                    .filter(todo -> project.getId().equals(todo.getProjectId()))
+                    .sorted(this::compareTodos)
+                    .collect(Collectors.toList());
+
+            content.append("\n#### ").append(project.getName()).append("\n");
+            hasNextPlan = true;
+
+            if (!projectTodos.isEmpty()) {
+                for (Todo todo : projectTodos) {
+                    content.append("- ")
+                            .append(getPriorityLabel(todo.getPriority()))
+                            .append(todo.getTitle());
+                    if (todo.getAssignee() != null) {
+                        content.append("（").append(todo.getAssignee().getNickname()).append("）");
+                    }
+                    if (todo.getDueDate() != null) {
+                        content.append(" - 截止：").append(todo.getDueDate());
+                        java.time.LocalDate due = todo.getDueDate();
+                        long diff = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), due);
+                        if (diff > 0) {
+                            content.append("，剩余").append(diff).append("天");
+                        } else if (diff == 0) {
+                            content.append("，今天截止");
+                        } else {
+                            content.append("，已逾期").append(Math.abs(diff)).append("天");
+                        }
+                    }
+                    content.append("\n");
+                }
+            }
+
+            // 为没有待办任务的项目生成项目整体计划
+            if (projectTodos.isEmpty()) {
+                String projectPlan = generateProjectOverallStatus(project, "plan");
+                content.append("- ").append(projectPlan).append("\n");
+            }
+        }
+
+        if (!hasNextPlan) {
             content.append("- 待制定\n");
         }
 
@@ -397,5 +430,81 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
             default:
                 return 0;
         }
+    }
+
+    /**
+     * 为没有待办任务的项目生成整体状态信息
+     */
+    private String generateProjectOverallStatus(com.projectmanagement.entity.Project project, String type) {
+        if (project == null) {
+            return "项目状态未知";
+        }
+
+        // 计算项目剩余天数
+        long daysLeft = 0;
+        if (project.getEndDate() != null) {
+            daysLeft = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), project.getEndDate());
+        }
+
+        // 获取项目当前状态
+        String statusText = "";
+        switch (project.getStatus()) {
+            case "PENDING":
+                statusText = "待启动";
+                break;
+            case "PROGRESS":
+                statusText = "正常进行";
+                break;
+            case "COMPLETED":
+                statusText = "已完成";
+                break;
+            case "CANCELLED":
+                statusText = "已取消";
+                break;
+            default:
+                statusText = "进行中";
+                break;
+        }
+
+        // 根据类型生成不同的状态描述
+        if ("current".equals(type)) {
+            // 本期工作状态
+            if ("COMPLETED".equals(project.getStatus())) {
+                return statusText + "：" + project.getName() + "（项目已完成）";
+            } else if ("CANCELLED".equals(project.getStatus())) {
+                return statusText + "：" + project.getName() + "（项目已取消）";
+            } else {
+                String timeInfo = "";
+                if (daysLeft > 0) {
+                    timeInfo = "（剩余" + daysLeft + "天）";
+                } else if (daysLeft == 0) {
+                    timeInfo = "（今日截止）";
+                } else if (daysLeft < 0) {
+                    timeInfo = "（已逾期" + Math.abs(daysLeft) + "天）";
+                }
+                return statusText + "：" + project.getName() + timeInfo;
+            }
+        } else if ("plan".equals(type)) {
+            // 下期计划状态
+            if ("COMPLETED".equals(project.getStatus())) {
+                return "项目维护：" + project.getName() + "（持续优化和维护）";
+            } else if ("CANCELLED".equals(project.getStatus())) {
+                return "项目归档：" + project.getName() + "（完成资料整理）";
+            } else {
+                // 根据进度估算生成计划描述
+                int progress = project.getProgress() != null ? project.getProgress() : 0;
+                String progressInfo = "（预估进度" + progress + "%）";
+
+                if (progress < 30) {
+                    return "持续推进：" + project.getName() + progressInfo;
+                } else if (progress < 70) {
+                    return "加速推进：" + project.getName() + progressInfo;
+                } else {
+                    return "收尾推进：" + project.getName() + progressInfo;
+                }
+            }
+        }
+
+        return statusText + "：" + project.getName();
     }
 }

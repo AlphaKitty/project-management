@@ -361,15 +361,17 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
 
             // 生成本周工作内容
             String thisWeekWork = generateThisWeekWork(todos, startOfThisWeek, endOfThisWeek);
-            if (thisWeekWork == null) {
-                thisWeekWork = generateMilestoneBasedThisWeekWork(project, startOfThisWeek, endOfThisWeek);
-            }
+            String milestoneThisWeekWork = generateMilestoneBasedThisWeekWork(project, startOfThisWeek, endOfThisWeek);
+
+            // 合并任务和项目整体状态
+            thisWeekWork = combineWorkContent(thisWeekWork, milestoneThisWeekWork);
 
             // 生成下周计划内容
             String nextWeekPlan = generateNextWeekPlan(todos, startOfNextWeek, endOfNextWeek);
-            if (nextWeekPlan == null) {
-                nextWeekPlan = generateMilestoneBasedNextWeekPlan(project, startOfNextWeek, endOfNextWeek);
-            }
+            String milestoneNextWeekPlan = generateMilestoneBasedNextWeekPlan(project, startOfNextWeek, endOfNextWeek);
+
+            // 合并任务和项目整体计划
+            nextWeekPlan = combineWorkContent(nextWeekPlan, milestoneNextWeekPlan);
 
             // 更新项目
             project.setThisWeekWork(thisWeekWork);
@@ -847,5 +849,32 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
             // 如果解析失败，默认开始时间为30天前
             return today.minusDays(30);
         }
+    }
+
+    /**
+     * 合并任务内容和项目整体状态
+     */
+    private String combineWorkContent(String taskContent, String milestoneContent) {
+        StringBuilder combined = new StringBuilder();
+
+        // 添加任务内容
+        if (taskContent != null && !taskContent.trim().isEmpty()) {
+            combined.append(taskContent.trim());
+        }
+
+        // 添加项目整体状态
+        if (milestoneContent != null && !milestoneContent.trim().isEmpty()) {
+            if (combined.length() > 0) {
+                combined.append("\n\n");
+            }
+            combined.append(milestoneContent.trim());
+        }
+
+        // 如果都为空，返回默认内容
+        if (combined.length() == 0) {
+            return "项目正常推进中，按计划执行各项工作";
+        }
+
+        return combined.toString();
     }
 }

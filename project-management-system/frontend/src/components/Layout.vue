@@ -25,19 +25,19 @@
             </template>
             待办任务
           </a-menu-item>
-          <a-menu-item key="reports" v-if="isBarlinZhang">
+          <a-menu-item key="reports" v-if="shouldShowMenuItem('reports')">
             <template #icon>
               <icon-file />
             </template>
             项目报告
           </a-menu-item>
-          <a-menu-item key="email-rules" v-if="isBarlinZhang">
+          <a-menu-item key="email-rules" v-if="shouldShowMenuItem('email-rules')">
             <template #icon>
               <icon-email />
             </template>
             邮件规则管理
           </a-menu-item>
-          <a-menu-item key="data-dashboard" v-if="isBarlinZhang">
+          <a-menu-item key="data-dashboard" v-if="shouldShowMenuItem('data-dashboard')">
             <template #icon>
               <icon-bar-chart />
             </template>
@@ -142,6 +142,29 @@ const pageTitle = computed(() => {
 const isBarlinZhang = computed(() => {
   return userStore.currentUser?.username === 'barlin.zhang'
 })
+
+// 根据路由配置判断是否显示菜单项
+const shouldShowMenuItem = (menuKey: string) => {
+  // 查找对应的路由配置
+  const matchedRoute = router.getRoutes().find(route => {
+    if (route.children) {
+      return route.children.some(child => child.path === menuKey)
+    }
+    return false
+  })
+
+  if (matchedRoute) {
+    const childRoute = matchedRoute.children?.find(child => child.path === menuKey)
+    if (childRoute?.meta?.showInMenu === true) {
+      return true // 配置为true时，所有用户都显示
+    }
+    if (childRoute?.meta?.showInMenu === false) {
+      return isBarlinZhang.value // 配置为false时，只有管理员显示
+    }
+  }
+
+  return true // 默认显示
+}
 
 // 创建按钮
 const showCreateButton = computed(() => {

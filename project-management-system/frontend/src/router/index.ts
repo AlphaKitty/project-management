@@ -54,6 +54,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Reports.vue"),
         meta: {
           title: "项目报告",
+          showInMenu: false,
         },
       },
       {
@@ -62,6 +63,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/EmailRules.vue"),
         meta: {
           title: "邮件规则管理",
+          showInMenu: false,
         },
       },
       {
@@ -70,7 +72,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/DataDashboard.vue"),
         meta: {
           title: "数据看板",
-          requiresSpecialAccess: true,
+          showInMenu: true,
         },
       },
     ],
