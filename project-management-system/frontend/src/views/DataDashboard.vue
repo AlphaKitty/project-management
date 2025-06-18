@@ -140,7 +140,6 @@
                                 :pagination="{ pageSize: 10 }">
                                 <template #user="{ record }">
                                     <div class="user-info">
-                                        <a-avatar size="small">{{ record.username.charAt(0).toUpperCase() }}</a-avatar>
                                         <span class="user-name">{{ record.nickname || record.username }}</span>
                                     </div>
                                 </template>
@@ -262,8 +261,6 @@
                                     </template>
                                     <template #user="{ record }">
                                         <div class="user-info">
-                                            <a-avatar size="small">{{ record.username.charAt(0).toUpperCase()
-                                                }}</a-avatar>
                                             <span class="user-name">{{ record.nickname || record.username }}</span>
                                         </div>
                                     </template>
@@ -355,41 +352,41 @@ const userStore = useUserStore()
 
 // 表格列配置
 const projectColumns = [
-    { title: '项目名称', dataIndex: 'name', width: 150 },
-    { title: '状态', dataIndex: 'status', slotName: 'status', width: 100 },
-    { title: '进度', dataIndex: 'progress', slotName: 'progress', width: 120 },
-    { title: '负责人', dataIndex: 'assigneeName', width: 100 },
-    { title: '任务统计', dataIndex: 'taskStats', slotName: 'taskStats', width: 200 },
-    { title: '完成率', dataIndex: 'completionRate', width: 100 },
-    { title: '创建时间', dataIndex: 'createTime', width: 120 }
+    { title: '项目名称', dataIndex: 'name', width: 150, align: 'center' },
+    { title: '状态', dataIndex: 'status', slotName: 'status', width: 100, align: 'center' },
+    { title: '进度', dataIndex: 'progress', slotName: 'progress', width: 120, align: 'center' },
+    { title: '负责人', dataIndex: 'assigneeName', width: 100, align: 'center' },
+    { title: '任务统计', dataIndex: 'taskStats', slotName: 'taskStats', width: 200, align: 'center' },
+    { title: '完成率', dataIndex: 'completionRate', width: 100, align: 'center' },
+    { title: '创建时间', dataIndex: 'createTime', width: 120, align: 'center' }
 ]
 
 const userColumns = [
-    { title: '用户', dataIndex: 'user', slotName: 'user', width: 120 },
-    { title: '部门', dataIndex: 'department', slotName: 'department', width: 100 },
-    { title: '待办任务', dataIndex: 'pendingTasks', width: 100 },
-    { title: '进行中任务', dataIndex: 'inProgressTasks', width: 100 },
-    { title: '已完成任务', dataIndex: 'completedTasks', width: 100 },
-    { title: '工作效率', dataIndex: 'efficiency', slotName: 'efficiency', width: 100 },
-    { title: '逾期任务', dataIndex: 'overdueTasks', width: 100 },
-    { title: '活跃度分数', dataIndex: 'activityScore', width: 100 }
+    { title: '用户', dataIndex: 'user', slotName: 'user', width: 120, align: 'center' },
+    { title: '部门', dataIndex: 'department', slotName: 'department', width: 100, align: 'center' },
+    { title: '待办任务', dataIndex: 'pendingTasks', width: 100, align: 'center' },
+    { title: '进行中任务', dataIndex: 'inProgressTasks', width: 100, align: 'center' },
+    { title: '已完成任务', dataIndex: 'completedTasks', width: 100, align: 'center' },
+    { title: '工作效率', dataIndex: 'efficiency', slotName: 'efficiency', width: 100, align: 'center' },
+    { title: '逾期任务', dataIndex: 'overdueTasks', width: 100, align: 'center' },
+    { title: '活跃度分数', dataIndex: 'activityScore', width: 100, align: 'center' }
 ]
 
 const projectRankingColumns = [
     { title: '排名', dataIndex: 'rank', slotName: 'rank', width: 50, align: 'center' },
-    { title: '项目名称', dataIndex: 'name', width: 150 },
-    { title: '负责人', dataIndex: 'assigneeName', width: 80 },
-    { title: '得分', dataIndex: 'score', slotName: 'score' },
+    { title: '项目名称', dataIndex: 'name', width: 150, align: 'center' },
+    { title: '负责人', dataIndex: 'assigneeName', width: 80, align: 'center' },
+    { title: '得分', dataIndex: 'score', slotName: 'score', width: 80, align: 'center' },
     { title: '任务完成率', dataIndex: 'completionRate', width: 60, align: 'center' },
     { title: '项目进度', dataIndex: 'progress', width: 60, align: 'center' },
 ]
 
 const userRankingColumns = [
     { title: '排名', dataIndex: 'rank', slotName: 'rank', width: 50, align: 'center' },
-    { title: '用户', dataIndex: 'user', slotName: 'user', width: 120 },
-    { title: '得分', dataIndex: 'score', slotName: 'score' },
+    { title: '用户', dataIndex: 'user', slotName: 'user', align: 'center' },
+    { title: '得分', dataIndex: 'score', slotName: 'score', width: 80, align: 'center' },
     { title: '任务完成率', dataIndex: 'completionRate', width: 60, align: 'center' },
-    { title: '活跃度', dataIndex: 'activityScore', width: 100 }
+    { title: '活跃度', dataIndex: 'activityScore', width: 100, align: 'center' }
 ]
 
 // 工具函数
@@ -1244,6 +1241,7 @@ onUnmounted(() => {
 .user-info {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
 }
 
@@ -1302,7 +1300,8 @@ onUnmounted(() => {
 .score-display {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
 }
 
 .score-value {
@@ -1377,7 +1376,8 @@ onUnmounted(() => {
 .score-display {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
 }
 
 .score-value {
