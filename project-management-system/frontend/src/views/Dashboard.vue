@@ -41,7 +41,7 @@
     </a-row>
 
     <!-- 项目列表和待办任务 -->
-    <a-row :gutter="24" class="content-row">
+    <a-row :gutter="12" class="content-row">
       <a-col :span="10">
         <a-card title="项目概览" class="project-overview">
           <div class="project-list-scroll">

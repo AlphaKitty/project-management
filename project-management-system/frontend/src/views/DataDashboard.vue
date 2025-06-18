@@ -32,7 +32,7 @@
                 <a-statistic title="总项目数" :value="statistics.totalProjects" :value-style="{ color: '#1890ff' }" />
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.projectTrend > 0 ? '+' : '' }}{{ statistics.projectTrend
-                        }}</span>
+                    }}</span>
                     <span class="trend-label">{{ timeRangeText }}新增</span>
                 </div>
             </a-card>
@@ -42,7 +42,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.userActiveTrend > 0 ? '+' : '' }}{{
                         statistics.userActiveTrend
-                        }}</span>
+                    }}</span>
                     <span class="trend-label">{{ timeRangeText }}操作</span>
                 </div>
             </a-card>
@@ -61,7 +61,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.completionTrend > 0 ? '+' : '' }}{{
                         statistics.completionTrend
-                        }}%</span>
+                    }}%</span>
                     <span class="trend-label">较上期</span>
                 </div>
             </a-card>
@@ -128,11 +128,11 @@
                         </div>
 
                         <!-- 部门统计 -->
-                        <div class="chart-row">
+                        <!-- <div class="chart-row">
                             <a-card title="部门工作分布" class="chart-card full-width">
                                 <div ref="departmentChart" class="chart-container"></div>
                             </a-card>
-                        </div>
+                        </div> -->
 
                         <!-- 人员详细数据表格 -->
                         <a-card title="人员详细统计" class="data-table-card">
