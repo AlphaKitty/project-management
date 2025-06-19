@@ -3,94 +3,112 @@
         <!-- 筛选区域 -->
         <div class="filter-section">
             <a-card title="查询条件" :bordered="false">
-                <a-form :model="queryForm" layout="inline" @submit="handleSearch">
-                    <a-form-item label="用户名">
-                        <a-input v-model="queryForm.username" placeholder="请输入用户名" allow-clear style="width: 150px" />
-                    </a-form-item>
-                    <a-form-item label="模块">
-                        <a-select v-model="queryForm.module" placeholder="请选择模块" allow-clear style="width: 150px">
-                            <a-option value="USER">用户管理</a-option>
-                            <a-option value="PROJECT">项目管理</a-option>
-                            <a-option value="TODO">待办任务</a-option>
-                            <a-option value="REPORT">报告管理</a-option>
-                            <a-option value="EMAIL_RULE">邮件规则</a-option>
-                            <a-option value="AUTH">认证授权</a-option>
-                            <a-option value="SYSTEM">系统管理</a-option>
-                        </a-select>
-                    </a-form-item>
-                    <a-form-item label="操作类型">
-                        <a-select v-model="queryForm.operationType" placeholder="请选择操作类型" allow-clear
-                            style="width: 150px">
-                            <a-option value="CREATE">新增</a-option>
-                            <a-option value="UPDATE">修改</a-option>
-                            <a-option value="DELETE">删除</a-option>
-                            <a-option value="QUERY">查询</a-option>
-                            <a-option value="LOGIN">登录</a-option>
-                            <a-option value="LOGOUT">退出</a-option>
-                            <a-option value="EXPORT">导出</a-option>
-                            <a-option value="IMPORT">导入</a-option>
-                        </a-select>
-                    </a-form-item>
-                    <a-form-item label="执行状态">
-                        <a-select v-model="queryForm.success" placeholder="请选择执行状态" allow-clear style="width: 120px">
-                            <a-option :value="true">成功</a-option>
-                            <a-option :value="false">失败</a-option>
-                        </a-select>
-                    </a-form-item>
-                    <a-form-item label="时间范围">
-                        <a-range-picker v-model="queryForm.timeRange" style="width: 300px" format="YYYY-MM-DD HH:mm:ss"
-                            show-time />
-                    </a-form-item>
-                    <a-form-item>
-                        <a-space>
-                            <a-button type="primary" @click="handleSearch">
-                                <template #icon>
-                                    <icon-search />
-                                </template>
-                                查询
-                            </a-button>
-                            <a-button @click="handleReset">
-                                <template #icon>
-                                    <icon-refresh />
-                                </template>
-                                重置
-                            </a-button>
-                            <a-button type="outline" @click="loadStats" v-if="userStore.isAdmin">
-                                <template #icon>
-                                    <icon-bar-chart />
-                                </template>
-                                统计信息
-                            </a-button>
-                            <a-button type="outline" status="danger" @click="showCleanDialog" v-if="userStore.isAdmin">
-                                <template #icon>
-                                    <icon-delete />
-                                </template>
-                                清理日志
-                            </a-button>
-                        </a-space>
-                    </a-form-item>
+                <a-form :model="queryForm" layout="vertical">
+                    <!-- 第一行：基础查询条件 -->
+                    <a-row :gutter="16">
+                        <a-col :span="6">
+                            <a-form-item label="用户名">
+                                <a-input v-model="queryForm.username" placeholder="请输入用户名" allow-clear />
+                            </a-form-item>
+                        </a-col>
+                        <a-col :span="6">
+                            <a-form-item label="模块">
+                                <a-select v-model="queryForm.module" placeholder="请选择模块" allow-clear>
+                                    <a-option value="USER">用户管理</a-option>
+                                    <a-option value="PROJECT">项目管理</a-option>
+                                    <a-option value="TODO">待办任务</a-option>
+                                    <a-option value="REPORT">报告管理</a-option>
+                                    <a-option value="EMAIL_RULE">邮件规则</a-option>
+                                    <a-option value="AUTH">认证授权</a-option>
+                                    <a-option value="SYSTEM">系统管理</a-option>
+                                </a-select>
+                            </a-form-item>
+                        </a-col>
+                        <a-col :span="6">
+                            <a-form-item label="操作类型">
+                                <a-select v-model="queryForm.operationType" placeholder="请选择操作类型" allow-clear>
+                                    <a-option value="CREATE">新增</a-option>
+                                    <a-option value="UPDATE">修改</a-option>
+                                    <a-option value="DELETE">删除</a-option>
+                                    <a-option value="QUERY">查询</a-option>
+                                    <a-option value="LOGIN">登录</a-option>
+                                    <a-option value="LOGOUT">退出</a-option>
+                                    <a-option value="EXPORT">导出</a-option>
+                                    <a-option value="IMPORT">导入</a-option>
+                                </a-select>
+                            </a-form-item>
+                        </a-col>
+                        <a-col :span="6">
+                            <a-form-item label="执行状态">
+                                <a-select v-model="queryForm.success" placeholder="请选择执行状态" allow-clear>
+                                    <a-option :value="true">成功</a-option>
+                                    <a-option :value="false">失败</a-option>
+                                </a-select>
+                            </a-form-item>
+                        </a-col>
+                    </a-row>
+
+                    <!-- 第二行：时间范围和操作按钮 -->
+                    <a-row :gutter="16" style="margin-top: 16px">
+                        <a-col :span="8">
+                            <a-form-item label="时间范围">
+                                <a-range-picker v-model="queryForm.timeRange" style="width: 100%" format="YYYY-MM-DD HH:mm:ss" show-time />
+                            </a-form-item>
+                        </a-col>
+                        <a-col :span="16">
+                            <a-form-item label="操作">
+                                <a-space>
+                                    <a-button type="primary" @click="handleSearch" :loading="loading">
+                                        <template #icon>
+                                            <icon-search />
+                                        </template>
+                                        查询
+                                    </a-button>
+                                    <a-button @click="handleReset">
+                                        <template #icon>
+                                            <icon-refresh />
+                                        </template>
+                                        重置
+                                    </a-button>
+                                    <a-button type="outline" @click="handleStatsClick" :loading="statsLoading" v-if="userStore.isAdmin">
+                                        <template #icon>
+                                            <icon-bar-chart />
+                                        </template>
+                                        {{ showStats ? '隐藏统计' : '显示统计' }}
+                                    </a-button>
+                                    <a-button type="outline" status="danger" @click="showCleanDialog" v-if="userStore.isAdmin">
+                                        <template #icon>
+                                            <icon-delete />
+                                        </template>
+                                        清理日志
+                                    </a-button>
+                                </a-space>
+                            </a-form-item>
+                        </a-col>
+                    </a-row>
                 </a-form>
             </a-card>
         </div>
 
         <!-- 统计信息（管理员可见） -->
-        <div class="stats-section" v-if="userStore.isAdmin && stats">
-            <a-row :gutter="16">
-                <a-col :span="6">
-                    <a-statistic title="总记录数" :value="stats.totalCount" />
-                </a-col>
-                <a-col :span="6">
-                    <a-statistic title="成功记录" :value="stats.successCount" />
-                </a-col>
-                <a-col :span="6">
-                    <a-statistic title="失败记录" :value="stats.failCount" />
-                </a-col>
-                <a-col :span="6">
-                    <a-statistic title="成功率"
-                        :value="stats.totalCount > 0 ? Number((stats.successCount / stats.totalCount * 100).toFixed(2)) : 0"
-                        suffix="%" />
-                </a-col>
-            </a-row>
+        <div class="stats-section" v-if="userStore.isAdmin && showStats">
+            <a-card title="统计信息" :bordered="false" :loading="statsLoading">
+                <a-row :gutter="16" v-if="stats">
+                    <a-col :span="6">
+                        <a-statistic title="总记录数" :value="stats.totalCount" :value-style="{ color: '#1890ff' }" />
+                    </a-col>
+                    <a-col :span="6">
+                        <a-statistic title="成功记录" :value="stats.successCount" :value-style="{ color: '#52c41a' }" />
+                    </a-col>
+                    <a-col :span="6">
+                        <a-statistic title="失败记录" :value="stats.failCount" :value-style="{ color: '#ff4d4f' }" />
+                    </a-col>
+                    <a-col :span="6">
+                        <a-statistic title="成功率" :value="stats.totalCount > 0 ? Number(((stats.successCount / stats.totalCount) * 100).toFixed(2)) : 0" suffix="%" :value-style="{ color: stats.totalCount > 0 && (stats.successCount / stats.totalCount) >= 0.9 ? '#52c41a' : '#faad14' }" />
+                    </a-col>
+                </a-row>
+                <a-empty v-else description="暂无统计数据" />
+            </a-card>
         </div>
 
         <!-- 数据表格 -->
@@ -101,10 +119,7 @@
                     <span v-else>我的操作记录</span>
                 </template>
 
-                <a-table :columns="columns" :data="logData" :loading="loading" :pagination="pagination"
-                    @page-change="handlePageChange" @page-size-change="handlePageSizeChange" :scroll="{ x: 1800 }"
-                    row-key="id">
-
+                <a-table :columns="columns" :data="logData" :loading="loading" :pagination="pagination" @page-change="handlePageChange" @page-size-change="handlePageSizeChange" :scroll="{ x: 1800 }" row-key="id">
                     <!-- 操作类型插槽 -->
                     <template #operationType="{ record }">
                         <a-tag :color="getOperationTypeColor(record.operationType)">
@@ -171,8 +186,7 @@
         <a-modal v-model:visible="cleanVisible" title="清理过期日志" @ok="handleCleanLogs" ok-text="确认清理" cancel-text="取消">
             <a-form :model="cleanForm" layout="vertical">
                 <a-form-item label="保留天数">
-                    <a-input-number v-model="cleanForm.keepDays" :min="1" :max="365" placeholder="请输入保留天数"
-                        style="width: 200px" />
+                    <a-input-number v-model="cleanForm.keepDays" :min="1" :max="365" placeholder="请输入保留天数" style="width: 200px" />
                     <div style="color: #999; font-size: 12px; margin-top: 4px;">
                         将删除 {{ cleanForm.keepDays }} 天前的所有日志记录
                     </div>
@@ -208,12 +222,13 @@ const userStore = useUserStore()
 
 // 响应式数据
 const loading = ref(false)
+const statsLoading = ref(false)
+const showStats = ref(false)
 const logData = ref<OperationLog[]>([])
 const stats = ref<OperationStats | null>(null)
 const detailVisible = ref(false)
 const cleanVisible = ref(false)
 const currentLog = ref<OperationLog | null>(null)
-
 
 // 查询表单
 const queryForm = reactive<{
@@ -400,6 +415,7 @@ const loadStats = async () => {
     if (!userStore.isAdmin) return
 
     try {
+        statsLoading.value = true
         const params: any = {}
         if (queryForm.timeRange) {
             params.startTime = queryForm.timeRange[0]
@@ -408,9 +424,24 @@ const loadStats = async () => {
 
         const response = await getOperationStats(params)
         stats.value = response.data
+        Message.success('统计数据已更新')
     } catch (error) {
         console.error('加载统计数据失败:', error)
         Message.error('加载统计数据失败')
+    } finally {
+        statsLoading.value = false
+    }
+}
+
+// 处理统计按钮点击
+const handleStatsClick = async () => {
+    if (showStats.value) {
+        // 如果当前显示统计，则隐藏
+        showStats.value = false
+    } else {
+        // 如果当前隐藏统计，则显示并加载数据
+        showStats.value = true
+        await loadStats()
     }
 }
 
@@ -418,6 +449,11 @@ const loadStats = async () => {
 const handleSearch = () => {
     pagination.current = 1
     loadData()
+    
+    // 如果统计信息正在显示，也更新统计数据
+    if (showStats.value) {
+        loadStats()
+    }
 }
 
 // 重置
@@ -427,6 +463,11 @@ const handleReset = () => {
     })
     pagination.current = 1
     loadData()
+    
+    // 如果统计信息正在显示，也更新统计数据
+    if (showStats.value) {
+        loadStats()
+    }
 }
 
 // 分页处理
@@ -554,13 +595,7 @@ onMounted(() => {
 
 .stats-section {
     margin-bottom: 20px;
-    padding: 20px;
-    background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-
-
 
 .table-section {
     background: #fff;
@@ -584,5 +619,28 @@ onMounted(() => {
     max-height: 200px;
     white-space: pre-wrap;
     word-break: break-all;
+}
+
+/* 优化表单布局 */
+.arco-form-item {
+    margin-bottom: 16px;
+}
+
+.arco-form-item-label {
+    font-weight: 500;
+    color: #1d2129;
+}
+
+/* 统计卡片样式 */
+.arco-statistic-title {
+    font-size: 14px;
+    color: #86909c;
+    margin-bottom: 8px;
+}
+
+.arco-statistic-content {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 32px;
 }
 </style>

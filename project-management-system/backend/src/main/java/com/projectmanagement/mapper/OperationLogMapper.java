@@ -16,43 +16,43 @@ import java.util.List;
 @Mapper
 public interface OperationLogMapper extends BaseMapper<OperationLog> {
 
-    /**
-     * 分页查询操作日志
-     */
-    IPage<OperationLog> selectPageLogs(Page<OperationLog> page,
-            @Param("username") String username,
-            @Param("module") String module,
-            @Param("operationType") String operationType,
-            @Param("success") Boolean success,
-            @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime);
+        /**
+         * 分页查询操作日志
+         */
+        IPage<OperationLog> selectPageLogs(Page<OperationLog> page,
+                        @Param("username") String username,
+                        @Param("module") String module,
+                        @Param("operationType") String operationType,
+                        @Param("success") Boolean success,
+                        @Param("startTime") LocalDateTime startTime,
+                        @Param("endTime") LocalDateTime endTime);
 
-    /**
-     * 按时间范围查询操作日志
-     */
-    List<OperationLog> selectLogsByTimeRange(@Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime);
+        /**
+         * 按时间范围查询操作日志
+         */
+        List<OperationLog> selectLogsByTimeRange(@Param("startTime") LocalDateTime startTime,
+                        @Param("endTime") LocalDateTime endTime);
 
-    /**
-     * 查询用户的操作日志
-     */
-    List<OperationLog> selectLogsByUserId(@Param("userId") Long userId,
-            @Param("limit") Integer limit);
+        /**
+         * 查询用户的操作日志
+         */
+        List<OperationLog> selectLogsByUserId(@Param("userId") Long userId,
+                        @Param("limit") Integer limit);
 
-    /**
-     * 统计操作类型分布
-     */
-    List<Object> selectOperationTypeStats(@Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime);
+        /**
+         * 统计操作类型分布
+         */
+        List<Object> selectOperationTypeStats(@Param("startTime") LocalDateTime startTime,
+                        @Param("endTime") LocalDateTime endTime);
 
-    /**
-     * 统计模块操作分布
-     */
-    List<Object> selectModuleStats(@Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime);
+        /**
+         * 统计模块操作分布
+         */
+        List<Object> selectModuleStats(@Param("startTime") LocalDateTime startTime,
+                        @Param("endTime") LocalDateTime endTime);
 
-    /**
-     * 删除指定时间之前的日志（用于日志清理）
-     */
-    int deleteLogsBefore(@Param("beforeTime") LocalDateTime beforeTime);
+        /**
+         * 删除指定时间之前的日志（用于日志清理）
+         */
+        int deleteLogsBefore(@Param("beforeTime") LocalDateTime beforeTime);
 }
