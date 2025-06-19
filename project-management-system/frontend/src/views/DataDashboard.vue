@@ -32,7 +32,7 @@
                 <a-statistic title="总项目数" :value="statistics.totalProjects" :value-style="{ color: '#1890ff' }" />
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.projectTrend > 0 ? '+' : '' }}{{ statistics.projectTrend
-                    }}</span>
+                        }}</span>
                     <span class="trend-label">{{ timeRangeText }}新增</span>
                 </div>
             </a-card>
@@ -42,7 +42,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.userActiveTrend > 0 ? '+' : '' }}{{
                         statistics.userActiveTrend
-                    }}</span>
+                        }}</span>
                     <span class="trend-label">{{ timeRangeText }}操作</span>
                 </div>
             </a-card>
@@ -61,7 +61,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.completionTrend > 0 ? '+' : '' }}{{
                         statistics.completionTrend
-                    }}%</span>
+                        }}%</span>
                     <span class="trend-label">较上期</span>
                 </div>
             </a-card>
@@ -555,9 +555,32 @@ const loadAnalysisData = async () => {
         }
     })
 
-    // 用户分析数据
-    userAnalysisData.value = userStore.dashboardUsers.map(user => {
-        const userTodos = todoStore.todos.filter(todo => todo.assigneeId === user.id)
+    // 用户分析数据 - 根据当前标签页决定数据范围
+    let analysisUsers = userStore.dashboardUsers
+    let filteredTodos = todoStore.todos
+
+    // 如果是人员维度分析或综合排名分析，只显示与当前用户相关的项目数据
+    if ((activeTab.value === 'user' || activeTab.value === 'ranking') && userStore.currentUser?.id) {
+        const currentUserId = userStore.currentUser.id
+
+        // 获取当前用户创建或负责的项目
+        const relatedProjects = projectStore.projects.filter(p =>
+            p.creatorId === currentUserId || p.assigneeId === currentUserId
+        )
+        const relatedProjectIds = relatedProjects.map(p => p.id)
+
+        // 只统计相关项目下的任务
+        filteredTodos = todoStore.todos.filter(todo =>
+            todo.projectId && relatedProjectIds.includes(todo.projectId)
+        )
+
+        // 只包含在相关项目中有任务的用户
+        const usersWithTasks = new Set(filteredTodos.map(todo => todo.assigneeId).filter(id => id))
+        analysisUsers = userStore.dashboardUsers.filter(user => usersWithTasks.has(user.id))
+    }
+
+    userAnalysisData.value = analysisUsers.map(user => {
+        const userTodos = filteredTodos.filter(todo => todo.assigneeId === user.id)
         const pendingTasks = userTodos.filter(t => t.status === 'TODO').length
         const inProgressTasks = userTodos.filter(t => t.status === 'PROGRESS').length
         const completedTasks = userTodos.filter(t => t.status === 'DONE').length
@@ -700,6 +723,10 @@ const refreshData = async () => {
 
 // 标签切换处理
 const handleTabChange = async () => {
+    // 切换到人员维度分析或综合排名分析时，重新加载数据以应用过滤
+    if (activeTab.value === 'user' || activeTab.value === 'ranking') {
+        await loadAnalysisData()
+    }
     await nextTick()
     initCharts()
 }

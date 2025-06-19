@@ -214,4 +214,21 @@
         ORDER BY t.due_date ASC, t.priority DESC
     </select>   
 
+    <!-- 查询用户相关的所有任务（包括个人任务和项目任务） -->
+    <select id="selectUserRelatedTodos" resultMap="TodoWithDetails">
+        SELECT DISTINCT
+            t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            p.name as project_name,
+            u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email,
+            u2.username as creator_username, u2.nickname as creator_nickname
+        FROM todos t
+        LEFT JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u1 ON t.assignee_id = u1.id
+        LEFT JOIN users u2 ON t.creator_id = u2.id
+        WHERE t.assignee_id = #{userId} 
+           OR (p.creator_id = #{userId} OR p.assignee_id = #{userId})
+        ORDER BY t.create_time DESC
+    </select>
+
 </mapper> 

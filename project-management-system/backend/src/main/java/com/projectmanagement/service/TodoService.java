@@ -52,6 +52,12 @@ public interface TodoService extends IService<Todo> {
     List<Todo> getUserTodos(Long userId);
 
     /**
+     * 获取用户相关的所有任务（包括个人任务和项目任务）
+     * 包括：1. 自己是assignee的任务 2. 自己创建或负责的项目下的所有任务
+     */
+    List<Todo> getUserRelatedTodos(Long userId);
+
+    /**
      * 获取待办任务详情
      */
     Todo getTodoDetail(Long todoId);

@@ -14,9 +14,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -71,6 +74,13 @@ public class TodoServiceImpl extends ServiceImpl<TodoMapper, Todo> implements To
     @Override
     public List<Todo> getUserTodos(Long userId) {
         return todoMapper.selectTodosByUserId(userId);
+    }
+
+    @Override
+    public List<Todo> getUserRelatedTodos(Long userId) {
+        // 调用新添加的查询方法，获取用户相关的所有任务
+        // 包括：1. 自己是assignee的任务 2. 自己创建或负责的项目下的所有任务
+        return todoMapper.selectUserRelatedTodos(userId);
     }
 
     @Override

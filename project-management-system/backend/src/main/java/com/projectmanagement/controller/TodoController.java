@@ -38,11 +38,11 @@ public class TodoController {
         }
 
         List<Todo> todos;
-        // 管理员可以看到所有任务，普通用户只能看到自己的任务
+        // 管理员可以看到所有任务，普通用户可以看到自己相关的任务
         if ("barlin.zhang".equals(currentUser.getUsername())) {
             todos = todoService.getTodoList();
         } else {
-            todos = todoService.getUserTodos(currentUser.getId());
+            todos = todoService.getUserRelatedTodos(currentUser.getId());
         }
 
         return Result.success(todos);

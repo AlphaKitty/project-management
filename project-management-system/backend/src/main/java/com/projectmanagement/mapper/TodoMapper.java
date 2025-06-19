@@ -54,6 +54,12 @@ public interface TodoMapper extends BaseMapper<Todo> {
     List<Todo> selectTodosByUserId(@Param("userId") Long userId);
 
     /**
+     * 查询用户相关的所有任务（包括个人任务和项目任务）
+     * 包括：1. 自己是assignee的任务 2. 自己创建或负责的项目下的所有任务
+     */
+    List<Todo> selectUserRelatedTodos(@Param("userId") Long userId);
+
+    /**
      * 查询即将到期的任务（指定天数内到期）
      */
     List<Todo> selectTasksNearDeadline(@Param("daysAhead") int daysAhead);
