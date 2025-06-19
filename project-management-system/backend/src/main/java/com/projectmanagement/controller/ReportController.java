@@ -3,6 +3,9 @@ package com.projectmanagement.controller;
 import com.projectmanagement.common.Result;
 import com.projectmanagement.dto.ReportDTO;
 import com.projectmanagement.entity.Report;
+import com.projectmanagement.annotation.OperationLog;
+import com.projectmanagement.enums.BusinessModule;
+import com.projectmanagement.enums.OperationType;
 import com.projectmanagement.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +27,7 @@ public class ReportController {
      * 获取报告列表
      */
     @GetMapping
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.REPORT, description = "查询报告列表")
     public Result<List<Report>> getReports(
             @RequestParam(required = false) Long projectId,
             @RequestParam(required = false) String type,
@@ -48,6 +52,7 @@ public class ReportController {
      * 根据ID获取报告详情
      */
     @GetMapping("/{id}")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.REPORT, description = "查询报告详情")
     public Result<Report> getReport(@PathVariable Long id) {
         Report report = reportService.getReportById(id);
         if (report == null) {
@@ -60,6 +65,7 @@ public class ReportController {
      * 生成报告
      */
     @PostMapping("/generate")
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.REPORT, description = "生成报告")
     public Result<Report> generateReport(@RequestBody ReportDTO reportDTO) {
         try {
             Report report = reportService.generateReport(reportDTO);
@@ -73,6 +79,7 @@ public class ReportController {
      * 更新报告
      */
     @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.REPORT, description = "更新报告")
     public Result<Report> updateReport(@PathVariable Long id, @RequestBody ReportDTO reportDTO) {
         try {
             Report report = reportService.updateReport(id, reportDTO);
@@ -86,6 +93,7 @@ public class ReportController {
      * 删除报告
      */
     @DeleteMapping("/{id}")
+    @OperationLog(type = OperationType.DELETE, module = BusinessModule.REPORT, description = "删除报告")
     public Result<String> deleteReport(@PathVariable Long id) {
         try {
             boolean success = reportService.deleteReport(id);
@@ -103,6 +111,7 @@ public class ReportController {
      * 按类型统计报告数量
      */
     @GetMapping("/stats")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.REPORT, description = "查询报告统计数据")
     public Result<Object> getReportStats() {
         try {
             List<Report> weeklyReports = reportService.getReportsByType("WEEKLY");

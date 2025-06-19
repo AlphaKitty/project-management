@@ -103,3 +103,23 @@ mybatis-plus:
 #    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{50} - %msg%n"
 #  file:
 #    name: project-management-system/logs/project-management.log
+
+# 应用配置
+app:
+  # 操作日志配置
+  log:
+    # 是否启用操作日志记录
+    enabled: true
+    # 是否启用日志清理任务
+    cleanup:
+      enabled: true
+      # 保留天数（默认90天）
+      keep-days: 90
+    # 异步记录配置
+    async:
+      # 核心线程数
+      core-pool-size: 2
+      # 最大线程数
+      max-pool-size: 5
+      # 队列容量
+      queue-capacity: 200

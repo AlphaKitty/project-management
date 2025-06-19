@@ -30,7 +30,7 @@
                     <div>
                         <p>• 所有用户的默认密码为：<strong>0000</strong></p>
                         <p>• 管理员账户：<strong>barlin.zhang</strong></p>
-                        <p>• 普通用户只能查看自己的待办任务</p>
+                        <p>• 普通用户只能查看与自己相关的待办</p>
                     </div>
                 </a-alert>
             </div>

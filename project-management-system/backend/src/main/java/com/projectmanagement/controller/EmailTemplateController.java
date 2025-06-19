@@ -3,6 +3,9 @@ package com.projectmanagement.controller;
 import com.projectmanagement.common.ApiResponse;
 import com.projectmanagement.dto.EmailTemplateDTO;
 import com.projectmanagement.entity.EmailTemplate;
+import com.projectmanagement.annotation.OperationLog;
+import com.projectmanagement.enums.BusinessModule;
+import com.projectmanagement.enums.OperationType;
 import com.projectmanagement.service.EmailTemplateService;
 // import io.swagger.annotations.Api;
 // import io.swagger.annotations.ApiOperation;
@@ -27,6 +30,7 @@ public class EmailTemplateController {
      * 获取邮件模板列表
      */
     @GetMapping
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.EMAIL_TEMPLATE, description = "查询邮件模板列表")
     // @ApiOperation(value = "获取邮件模板列表")
     public ApiResponse<List<EmailTemplate>> getTemplateList() {
         List<EmailTemplate> templates = emailTemplateService.getTemplateList();
@@ -37,6 +41,7 @@ public class EmailTemplateController {
      * 根据ID获取邮件模板
      */
     @GetMapping("/{id}")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.EMAIL_TEMPLATE, description = "查询邮件模板详情")
     // @ApiOperation(value = "根据ID获取邮件模板详情")
     public ApiResponse<EmailTemplate> getTemplateById(@PathVariable Long id) {
         EmailTemplate template = emailTemplateService.getById(id);
@@ -50,6 +55,7 @@ public class EmailTemplateController {
      * 根据模板代码获取邮件模板
      */
     @GetMapping("/code/{templateCode}")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.EMAIL_TEMPLATE, description = "根据代码查询邮件模板")
     // @ApiOperation(value = "根据模板代码获取邮件模板")
     public ApiResponse<EmailTemplate> getTemplateByCode(@PathVariable String templateCode) {
         EmailTemplate template = emailTemplateService.getTemplateByCode(templateCode);
@@ -63,6 +69,7 @@ public class EmailTemplateController {
      * 创建邮件模板
      */
     @PostMapping
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.EMAIL_TEMPLATE, description = "创建邮件模板")
     // @ApiOperation(value = "创建邮件模板")
     public ApiResponse<EmailTemplate> createTemplate(@RequestBody EmailTemplateDTO templateDTO) {
         try {
@@ -77,6 +84,7 @@ public class EmailTemplateController {
      * 更新邮件模板
      */
     @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.EMAIL_TEMPLATE, description = "更新邮件模板")
     // @ApiOperation(value = "更新邮件模板")
     public ApiResponse<EmailTemplate> updateTemplate(@PathVariable Long id, @RequestBody EmailTemplateDTO templateDTO) {
         try {
@@ -91,6 +99,7 @@ public class EmailTemplateController {
      * 删除邮件模板
      */
     @DeleteMapping("/{id}")
+    @OperationLog(type = OperationType.DELETE, module = BusinessModule.EMAIL_TEMPLATE, description = "删除邮件模板")
     // @ApiOperation(value = "删除邮件模板")
     public ApiResponse<Void> deleteTemplate(@PathVariable Long id) {
         try {
@@ -109,6 +118,7 @@ public class EmailTemplateController {
      * 预览邮件模板
      */
     @PostMapping("/{templateCode}/preview")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.EMAIL_TEMPLATE, description = "预览邮件模板")
     // @ApiOperation(value = "预览邮件模板渲染结果")
     public ApiResponse<Map<String, String>> previewTemplate(
             @PathVariable String templateCode,
@@ -125,6 +135,7 @@ public class EmailTemplateController {
      * 发送模板邮件
      */
     @PostMapping("/{templateCode}/send")
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.EMAIL_TEMPLATE, description = "发送模板邮件")
     // @ApiOperation(value = "发送模板邮件")
     public ApiResponse<Void> sendTemplateEmail(
             @PathVariable String templateCode,
@@ -141,4 +152,4 @@ public class EmailTemplateController {
             return ApiResponse.error("邮件发送失败: " + e.getMessage());
         }
     }
-} 
+}

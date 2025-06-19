@@ -43,6 +43,12 @@
             </template>
             数据看板
           </a-menu-item>
+          <a-menu-item key="operation-logs" v-if="shouldShowMenuItem('operation-logs')">
+            <template #icon>
+              <icon-history />
+            </template>
+            操作日志
+          </a-menu-item>
         </a-menu>
       </a-layout-sider>
 
@@ -105,7 +111,8 @@ import {
   IconPlus,
   IconPoweroff,
   IconEmail,
-  IconBarChart
+  IconBarChart,
+  IconHistory
 } from '@arco-design/web-vue/es/icon'
 import { useUserStore } from '../stores/user'
 
@@ -122,6 +129,7 @@ const currentRoute = computed(() => {
   if (path.startsWith('/reports')) return 'reports'
   if (path.startsWith('/email-rules')) return 'email-rules'
   if (path.startsWith('/data-dashboard')) return 'data-dashboard'
+  if (path.startsWith('/operation-logs')) return 'operation-logs'
   return 'dashboard'
 })
 
@@ -133,7 +141,8 @@ const pageTitle = computed(() => {
     'todos': '待办任务',
     'reports': '项目报告',
     'email-rules': '邮件规则管理',
-    'data-dashboard': '数据看板'
+    'data-dashboard': '数据看板',
+    'operation-logs': '操作日志'
   }
   return titles[currentRoute.value] || '项目管理系统'
 })
@@ -194,7 +203,8 @@ const handleMenuClick = (key: string) => {
     'todos': '/todos',
     'reports': '/reports',
     'email-rules': '/email-rules',
-    'data-dashboard': '/data-dashboard'
+    'data-dashboard': '/data-dashboard',
+    'operation-logs': '/operation-logs'
   }
 
   if (routes[key] && route.path !== routes[key]) {

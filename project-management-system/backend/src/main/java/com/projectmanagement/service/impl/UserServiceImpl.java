@@ -27,7 +27,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<Map<String, Object>> getDashboardUsers() {
-        return userMapper.selectDashboardUsers();
+        // 使用性能优化版本
+        return userMapper.selectDashboardUsersFast();
+    }
+
+    @Override
+    public List<Map<String, Object>> getDashboardUsersFast() {
+        return userMapper.selectDashboardUsersFast();
     }
 
     @Override

@@ -49,11 +49,36 @@ public interface UserMapper extends BaseMapper<User> {
                         "u.status " +
                         "FROM users u " +
                         "WHERE u.status = 1 " +
-                        "AND (" +
-                        "  EXISTS (SELECT 1 FROM todos t WHERE t.assignee_id = u.id) " +
-                        "  OR EXISTS (SELECT 1 FROM projects p WHERE p.assignee_id = u.id) " +
-                        "  OR EXISTS (SELECT 1 FROM projects p WHERE p.creator_id = u.id) " +
+                        "AND u.id IN (" +
+                        "  SELECT DISTINCT user_id FROM (" +
+                        "    SELECT assignee_id as user_id FROM todos WHERE assignee_id IS NOT NULL " +
+                        "    UNION " +
+                        "    SELECT assignee_id as user_id FROM projects WHERE assignee_id IS NOT NULL " +
+                        "    UNION " +
+                        "    SELECT creator_id as user_id FROM projects WHERE creator_id IS NOT NULL " +
+                        "  ) related_users " +
                         ") " +
                         "ORDER BY u.username ASC")
         List<Map<String, Object>> selectDashboardUsers();
+
+        /**
+         * 查询数据看板用户数据（极速版 - 使用JOIN）
+         * 性能更好的实现方式
+         */
+        @Select("SELECT DISTINCT " +
+                        "u.id, " +
+                        "u.username, " +
+                        "u.nickname, " +
+                        "u.department, " +
+                        "u.position, " +
+                        "u.status " +
+                        "FROM users u " +
+                        "WHERE u.status = 1 " +
+                        "AND (" +
+                        "  u.id IN (SELECT DISTINCT assignee_id FROM todos WHERE assignee_id IS NOT NULL) " +
+                        "  OR u.id IN (SELECT DISTINCT assignee_id FROM projects WHERE assignee_id IS NOT NULL) " +
+                        "  OR u.id IN (SELECT DISTINCT creator_id FROM projects WHERE creator_id IS NOT NULL) " +
+                        ") " +
+                        "ORDER BY u.username ASC")
+        List<Map<String, Object>> selectDashboardUsersFast();
 }

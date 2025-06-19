@@ -17,6 +17,12 @@ public interface UserService {
     List<Map<String, Object>> getDashboardUsers();
 
     /**
+     * 获取数据看板用户数据（极速版）
+     * 性能更好的实现方式
+     */
+    List<Map<String, Object>> getDashboardUsersFast();
+
+    /**
      * 根据ID获取用户
      */
     User getUserById(Long id);

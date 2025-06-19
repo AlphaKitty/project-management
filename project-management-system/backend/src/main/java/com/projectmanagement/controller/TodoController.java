@@ -5,6 +5,11 @@ import com.projectmanagement.common.ResultCode;
 import com.projectmanagement.dto.TodoDTO;
 import com.projectmanagement.entity.Todo;
 import com.projectmanagement.entity.User;
+import com.projectmanagement.annotation.OperationLog;
+import com.projectmanagement.enums.BusinessModule;
+import com.projectmanagement.enums.OperationType;
+import com.projectmanagement.exception.ResourceNotFoundException;
+import com.projectmanagement.exception.UnauthorizedException;
 import com.projectmanagement.service.TodoService;
 import com.projectmanagement.service.EmailSendService;
 import com.projectmanagement.service.UserService;
@@ -31,6 +36,7 @@ public class TodoController {
     private final UserService userService;
 
     @GetMapping
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.TODO, description = "查询任务列表")
     public Result<List<Todo>> getTodoList(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -49,6 +55,7 @@ public class TodoController {
     }
 
     @GetMapping("/today")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.TODO, description = "查询今日任务")
     public Result<List<Todo>> getTodayTodos(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -67,6 +74,7 @@ public class TodoController {
     }
 
     @GetMapping("/week")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.TODO, description = "查询本周任务")
     public Result<List<Todo>> getWeekTodos(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -85,6 +93,7 @@ public class TodoController {
     }
 
     @GetMapping("/high")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.TODO, description = "查询高优先级任务")
     public Result<List<Todo>> getHighPriorityTodos(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -103,18 +112,24 @@ public class TodoController {
     }
 
     @GetMapping("/user/{userId}")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.TODO, description = "查询用户任务")
     public Result<List<Todo>> getUserTodos(@PathVariable Long userId) {
         List<Todo> todos = todoService.getUserTodos(userId);
         return Result.success(todos);
     }
 
     @GetMapping("/{id}")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.TODO, description = "查询任务详情")
     public Result<Todo> getTodoDetail(@PathVariable Long id) {
         Todo todo = todoService.getTodoDetail(id);
+        if (todo == null) {
+            throw new ResourceNotFoundException("任务", id);
+        }
         return Result.success(todo);
     }
 
     @PostMapping
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.TODO, description = "创建任务")
     public Result<Todo> createTodo(@Validated @RequestBody TodoDTO todoDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -152,6 +167,7 @@ public class TodoController {
     }
 
     @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.TODO, description = "更新任务")
     public Result<Todo> updateTodo(@PathVariable Long id,
             @Validated @RequestBody TodoDTO todoDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
@@ -188,24 +204,36 @@ public class TodoController {
     }
 
     @DeleteMapping("/{id}")
+    @OperationLog(type = OperationType.DELETE, module = BusinessModule.TODO, description = "删除任务")
     public Result<String> deleteTodo(@PathVariable Long id, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
-            return Result.unauthorized();
+            throw new UnauthorizedException("请先登录");
         }
 
         // 权限检查：只有barlin.zhang可以删除任务
         if (!"barlin.zhang".equals(currentUser.getUsername())) {
             log.warn("❌ 用户 {} 尝试删除任务，权限不足", currentUser.getUsername());
-            return Result.error("权限不足，只有管理员可以删除任务");
+            throw new UnauthorizedException("权限不足，只有管理员可以删除任务");
+        }
+
+        // 检查任务是否存在
+        Todo todo = todoService.getTodoDetail(id);
+        if (todo == null) {
+            throw new ResourceNotFoundException("任务", id);
         }
 
         log.info("管理员 {} 删除任务ID: {}", currentUser.getUsername(), id);
         boolean success = todoService.deleteTodo(id);
-        return success ? Result.success("任务删除成功") : Result.error("任务删除失败");
+        if (!success) {
+            throw new RuntimeException("任务删除失败，请稍后重试");
+        }
+
+        return Result.success("任务删除成功");
     }
 
     @PutMapping("/{id}/status")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.TODO, description = "更新任务状态")
     public Result<String> updateStatus(@PathVariable Long id,
             @RequestParam String status) {
         // 获取原始状态
@@ -230,6 +258,7 @@ public class TodoController {
     }
 
     @PostMapping("/send-email")
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.TODO, description = "发送任务邮件")
     public Result<String> sendTodoEmail(@RequestParam String email,
             @RequestParam(required = false) Long userId) {
         boolean success = todoService.sendTodoEmail(email, userId);

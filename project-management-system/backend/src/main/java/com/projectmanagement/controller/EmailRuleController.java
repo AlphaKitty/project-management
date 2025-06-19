@@ -8,6 +8,9 @@ import com.projectmanagement.dto.UserEmailPreferenceDTO;
 import com.projectmanagement.entity.EmailSendRule;
 import com.projectmanagement.entity.User;
 import com.projectmanagement.entity.UserEmailPreference;
+import com.projectmanagement.annotation.OperationLog;
+import com.projectmanagement.enums.BusinessModule;
+import com.projectmanagement.enums.OperationType;
 import com.projectmanagement.service.EmailRuleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +32,7 @@ public class EmailRuleController {
      * 分页查询邮件规则
      */
     @GetMapping
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.EMAIL_RULE, description = "查询邮件规则列表")
     public Result<Page<EmailSendRule>> getEmailRules(
             @RequestParam(defaultValue = "1") int current,
             @RequestParam(defaultValue = "10") int size,
@@ -42,6 +46,7 @@ public class EmailRuleController {
      * 根据ID获取邮件规则
      */
     @GetMapping("/{id}")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.EMAIL_RULE, description = "查询邮件规则详情")
     public Result<EmailSendRule> getEmailRuleById(@PathVariable Long id) {
         EmailSendRule rule = emailRuleService.getEmailRuleById(id);
         if (rule == null) {
@@ -54,6 +59,7 @@ public class EmailRuleController {
      * 创建邮件规则
      */
     @PostMapping
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.EMAIL_RULE, description = "创建邮件规则")
     public Result<String> createEmailRule(@RequestBody EmailRuleDTO emailRuleDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -72,6 +78,7 @@ public class EmailRuleController {
      * 更新邮件规则
      */
     @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.EMAIL_RULE, description = "更新邮件规则")
     public Result<String> updateEmailRule(@PathVariable Long id, @RequestBody EmailRuleDTO emailRuleDTO) {
         boolean success = emailRuleService.updateEmailRule(id, emailRuleDTO);
         if (success) {
@@ -85,6 +92,7 @@ public class EmailRuleController {
      * 删除邮件规则
      */
     @DeleteMapping("/{id}")
+    @OperationLog(type = OperationType.DELETE, module = BusinessModule.EMAIL_RULE, description = "删除邮件规则")
     public Result<String> deleteEmailRule(@PathVariable Long id) {
         boolean success = emailRuleService.deleteEmailRule(id);
         if (success) {
@@ -98,6 +106,7 @@ public class EmailRuleController {
      * 启用/禁用邮件规则
      */
     @PutMapping("/{id}/toggle")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.EMAIL_RULE, description = "启用/禁用邮件规则")
     public Result<String> toggleEmailRule(@PathVariable Long id, @RequestParam Boolean enabled) {
         boolean success = emailRuleService.toggleEmailRule(id, enabled);
         if (success) {
@@ -112,6 +121,7 @@ public class EmailRuleController {
      * 获取当前用户的邮件偏好设置
      */
     @GetMapping("/preferences")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.EMAIL_RULE, description = "查询邮件偏好设置")
     public Result<UserEmailPreference> getUserEmailPreference(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -126,6 +136,7 @@ public class EmailRuleController {
      * 更新当前用户的邮件偏好设置
      */
     @PutMapping("/preferences")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.EMAIL_RULE, description = "更新邮件偏好设置")
     public Result<String> updateUserEmailPreference(@RequestBody UserEmailPreferenceDTO preferenceDTO,
             HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");

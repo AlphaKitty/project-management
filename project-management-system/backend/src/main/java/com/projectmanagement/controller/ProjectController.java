@@ -5,6 +5,9 @@ import com.projectmanagement.common.ResultCode;
 import com.projectmanagement.dto.ProjectDTO;
 import com.projectmanagement.entity.Project;
 import com.projectmanagement.entity.User;
+import com.projectmanagement.annotation.OperationLog;
+import com.projectmanagement.enums.BusinessModule;
+import com.projectmanagement.enums.OperationType;
 import com.projectmanagement.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -24,6 +27,7 @@ public class ProjectController {
     private final ProjectService projectService;
 
     @GetMapping
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.PROJECT, description = "查询项目列表")
     public Result<List<Project>> getProjectList(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -36,6 +40,7 @@ public class ProjectController {
     }
 
     @GetMapping("/{id}")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.PROJECT, description = "查询项目详情")
     public Result<Project> getProjectDetail(@PathVariable Long id, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -57,6 +62,7 @@ public class ProjectController {
     }
 
     @PostMapping
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.PROJECT, description = "创建项目")
     public Result<Project> createProject(@Validated @RequestBody ProjectDTO projectDTO, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -70,6 +76,7 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.PROJECT, description = "更新项目")
     public Result<Project> updateProject(@PathVariable Long id, @Validated @RequestBody ProjectDTO projectDTO,
             HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
@@ -92,6 +99,7 @@ public class ProjectController {
     }
 
     @DeleteMapping("/{id}")
+    @OperationLog(type = OperationType.DELETE, module = BusinessModule.PROJECT, description = "删除项目")
     public Result<String> deleteProject(@PathVariable Long id, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -113,18 +121,21 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}/progress")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.PROJECT, description = "更新项目进度")
     public Result<String> updateProgress(@PathVariable Long id, @RequestParam Integer progress) {
         boolean success = projectService.updateProjectProgress(id, progress);
         return success ? Result.success("进度更新成功") : Result.error("进度更新失败");
     }
 
     @PostMapping("/{id}/members/{userId}")
+    @OperationLog(type = OperationType.CREATE, module = BusinessModule.PROJECT, description = "添加项目成员")
     public Result<String> addMember(@PathVariable Long id, @PathVariable Long userId) {
         boolean success = projectService.addProjectMember(id, userId);
         return success ? Result.success("成员添加成功") : Result.error("成员添加失败");
     }
 
     @DeleteMapping("/{id}/members/{userId}")
+    @OperationLog(type = OperationType.DELETE, module = BusinessModule.PROJECT, description = "移除项目成员")
     public Result<String> removeMember(@PathVariable Long id, @PathVariable Long userId) {
         boolean success = projectService.removeProjectMember(id, userId);
         return success ? Result.success("成员移除成功") : Result.error("成员移除失败");
@@ -134,6 +145,7 @@ public class ProjectController {
      * 获取项目概览（按创建时间排序）
      */
     @GetMapping("/overview")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.PROJECT, description = "查询项目概览")
     public Result<List<Project>> getProjectOverview(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
@@ -149,6 +161,7 @@ public class ProjectController {
      * 更新所有项目的工作计划
      */
     @PostMapping("/update-work-plans")
+    @OperationLog(type = OperationType.UPDATE, module = BusinessModule.PROJECT, description = "更新项目工作计划")
     public Result<String> updateWorkPlans(HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
