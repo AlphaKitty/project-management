@@ -66,7 +66,7 @@ request.interceptors.response.use(
         // 延迟跳转到登录页
         setTimeout(() => {
           window.location.href = "/login";
-        }, 2000);
+        }, 200);
       }
 
       throw new Error("登录过期，请重新登录");

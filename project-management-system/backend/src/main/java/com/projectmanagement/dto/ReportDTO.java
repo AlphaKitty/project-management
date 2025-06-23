@@ -24,4 +24,6 @@ public class ReportDTO {
     private LocalDate reportDate;
 
     private Long creatorId;
+
+    private Boolean fuzzyMode = true; // 模糊模式开关，默认开启
 }

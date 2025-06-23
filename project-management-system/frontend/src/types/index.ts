@@ -121,6 +121,7 @@ export interface ReportDTO {
   content?: string;
   reportDate: string;
   creatorId: number;
+  fuzzyMode?: boolean; // 模糊模式开关，默认true
 }
 
 // 状态标签映射

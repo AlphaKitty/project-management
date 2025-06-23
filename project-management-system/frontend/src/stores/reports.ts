@@ -80,7 +80,7 @@ export const useReportStore = defineStore("reports", () => {
 
       // 按创建时间排序（最新的在前）
       result.sort(
-        (a, b) =>
+        (a: any, b: any) =>
           new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
       );
 

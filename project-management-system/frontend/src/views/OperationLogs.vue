@@ -52,7 +52,8 @@
                     <a-row :gutter="16" style="margin-top: 16px">
                         <a-col :span="8">
                             <a-form-item label="时间范围">
-                                <a-range-picker v-model="queryForm.timeRange" style="width: 100%" format="YYYY-MM-DD HH:mm:ss" show-time />
+                                <a-range-picker v-model="queryForm.timeRange" style="width: 100%"
+                                    format="YYYY-MM-DD HH:mm:ss" show-time />
                             </a-form-item>
                         </a-col>
                         <a-col :span="16">
@@ -70,13 +71,15 @@
                                         </template>
                                         重置
                                     </a-button>
-                                    <a-button type="outline" @click="handleStatsClick" :loading="statsLoading" v-if="userStore.isAdmin">
+                                    <a-button type="outline" @click="handleStatsClick" :loading="statsLoading"
+                                        v-if="userStore.isAdmin">
                                         <template #icon>
                                             <icon-bar-chart />
                                         </template>
                                         {{ showStats ? '隐藏统计' : '显示统计' }}
                                     </a-button>
-                                    <a-button type="outline" status="danger" @click="showCleanDialog" v-if="userStore.isAdmin">
+                                    <a-button type="outline" status="danger" @click="showCleanDialog"
+                                        v-if="userStore.isAdmin">
                                         <template #icon>
                                             <icon-delete />
                                         </template>
@@ -104,7 +107,10 @@
                         <a-statistic title="失败记录" :value="stats.failCount" :value-style="{ color: '#ff4d4f' }" />
                     </a-col>
                     <a-col :span="6">
-                        <a-statistic title="成功率" :value="stats.totalCount > 0 ? Number(((stats.successCount / stats.totalCount) * 100).toFixed(2)) : 0" suffix="%" :value-style="{ color: stats.totalCount > 0 && (stats.successCount / stats.totalCount) >= 0.9 ? '#52c41a' : '#faad14' }" />
+                        <a-statistic title="成功率"
+                            :value="stats.totalCount > 0 ? Number(((stats.successCount / stats.totalCount) * 100).toFixed(2)) : 0"
+                            suffix="%"
+                            :value-style="{ color: stats.totalCount > 0 && (stats.successCount / stats.totalCount) >= 0.9 ? '#52c41a' : '#faad14' }" />
                     </a-col>
                 </a-row>
                 <a-empty v-else description="暂无统计数据" />
@@ -119,7 +125,9 @@
                     <span v-else>我的操作记录</span>
                 </template>
 
-                <a-table :columns="columns" :data="logData" :loading="loading" :pagination="pagination" @page-change="handlePageChange" @page-size-change="handlePageSizeChange" :scroll="{ x: 1800 }" row-key="id">
+                <a-table :columns="columns" :data="logData" :loading="loading" :pagination="pagination"
+                    @page-change="handlePageChange" @page-size-change="handlePageSizeChange" :scroll="{ x: 1800 }"
+                    row-key="id">
                     <!-- 操作类型插槽 -->
                     <template #operationType="{ record }">
                         <a-tag :color="getOperationTypeColor(record.operationType)">
@@ -186,7 +194,8 @@
         <a-modal v-model:visible="cleanVisible" title="清理过期日志" @ok="handleCleanLogs" ok-text="确认清理" cancel-text="取消">
             <a-form :model="cleanForm" layout="vertical">
                 <a-form-item label="保留天数">
-                    <a-input-number v-model="cleanForm.keepDays" :min="1" :max="365" placeholder="请输入保留天数" style="width: 200px" />
+                    <a-input-number v-model="cleanForm.keepDays" :min="1" :max="365" placeholder="请输入保留天数"
+                        style="width: 200px" />
                     <div style="color: #999; font-size: 12px; margin-top: 4px;">
                         将删除 {{ cleanForm.keepDays }} 天前的所有日志记录
                     </div>
@@ -424,7 +433,6 @@ const loadStats = async () => {
 
         const response = await getOperationStats(params)
         stats.value = response.data
-        Message.success('统计数据已更新')
     } catch (error) {
         console.error('加载统计数据失败:', error)
         Message.error('加载统计数据失败')
@@ -449,7 +457,7 @@ const handleStatsClick = async () => {
 const handleSearch = () => {
     pagination.current = 1
     loadData()
-    
+
     // 如果统计信息正在显示，也更新统计数据
     if (showStats.value) {
         loadStats()
@@ -463,7 +471,7 @@ const handleReset = () => {
     })
     pagination.current = 1
     loadData()
-    
+
     // 如果统计信息正在显示，也更新统计数据
     if (showStats.value) {
         loadStats()

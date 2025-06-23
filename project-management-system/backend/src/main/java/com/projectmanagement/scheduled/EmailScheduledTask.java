@@ -74,6 +74,7 @@ public class EmailScheduledTask {
 
                         // 检查是否到了发送时间
                         if (ruleProcessor.isTimeToSend(conditions)) {
+                            // if (true) {
                             log.info("触发定时邮件规则: {} (发送时间: {})", rule.getRuleName(),
                                     ruleProcessor.getSendTime(conditions));
 

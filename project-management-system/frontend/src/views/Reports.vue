@@ -97,6 +97,20 @@
           <a-date-picker v-model="generateForm.reportDate" style="width: 100%" />
         </a-form-item>
 
+        <a-form-item label="报告模式">
+          <a-switch v-model="generateForm.fuzzyMode" checked-text="模糊" unchecked-text="严谨" :default-checked="true">
+            <template #checked-icon>
+              <icon-eye-invisible />
+            </template>
+            <template #unchecked-icon>
+              <icon-eye />
+            </template>
+          </a-switch>
+          <div style="color: #86909c; font-size: 12px; margin-top: 4px;">
+            模糊模式：已完成任务不显示按时/逾期状态，项目待办数大于3个时只显示时间范围内的任务
+          </div>
+        </a-form-item>
+
         <a-form-item label="报告内容">
           <a-textarea v-model="generateForm.content" placeholder="留空将根据待办任务自动生成报告内容" :rows="6" />
         </a-form-item>
@@ -147,6 +161,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Message } from '@arco-design/web-vue'
+import {
+  IconEye,
+  IconEyeInvisible
+} from '@arco-design/web-vue/es/icon'
 import { useReportStore } from '@/stores/reports'
 import { useProjectStore } from '@/stores/projects'
 import type { Report, ReportDTO } from '@/types'
@@ -276,7 +294,8 @@ const showGenerateModal = () => {
     projectIds: [],
     reportDate: '',
     content: '',
-    creatorId: 1
+    creatorId: 1,
+    fuzzyMode: true
   }
   generateModalVisible.value = true
 }

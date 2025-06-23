@@ -13,6 +13,7 @@
         <result column="status" property="status"/>
         <result column="due_date" property="dueDate"/>
         <result column="completed_time" property="completedTime"/>
+        <result column="email_enabled" property="emailEnabled"/>
         <result column="creator_id" property="creatorId"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
@@ -134,7 +135,7 @@
     <select id="selectTasksNearDeadline" resultMap="TodoWithDetails">
         SELECT 
             t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
-            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time, t.email_enabled,
             p.name as project_name,
             u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
         FROM todos t
@@ -151,7 +152,7 @@
     <select id="selectTasksForSpecificDay" resultMap="TodoWithDetails">
         SELECT 
             t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
-            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time, t.email_enabled,
             p.name as project_name,
             u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
         FROM todos t
@@ -168,7 +169,7 @@
     <select id="selectOverdueTasks" resultMap="TodoWithDetails">
         SELECT 
             t.id, t.title, t.description, t.project_id, t.assignee_id, t.priority, t.status,
-            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time,
+            t.due_date, t.completed_time, t.creator_id, t.create_time, t.update_time, t.email_enabled,
             p.name as project_name,
             u1.username as assignee_username, u1.nickname as assignee_nickname, u1.email as assignee_email
         FROM todos t

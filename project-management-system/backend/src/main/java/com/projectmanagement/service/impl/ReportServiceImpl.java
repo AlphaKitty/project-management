@@ -136,6 +136,7 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
         String type = reportDTO.getType();
         LocalDate reportDate = reportDTO.getReportDate();
         List<Long> projectIds = reportDTO.getProjectIds();
+        Boolean fuzzyMode = reportDTO.getFuzzyMode() != null ? reportDTO.getFuzzyMode() : true;
 
         // 兼容旧的单项目ID
         if ((projectIds == null || projectIds.isEmpty()) && reportDTO.getProjectId() != null) {
@@ -233,6 +234,59 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
                 .filter(todo -> !"DONE".equals(todo.getStatus()))
                 .collect(Collectors.toList());
 
+        // 模糊模式下的过滤逻辑
+        if (fuzzyMode) {
+            // 对于待办数大于3个的项目，只显示时间范围内的任务
+            Map<Long, List<Todo>> currentTodosByProject = currentTodos.stream()
+                    .collect(Collectors.groupingBy(Todo::getProjectId));
+            Map<Long, List<Todo>> nextTodosByProject = nextTodos.stream()
+                    .collect(Collectors.groupingBy(Todo::getProjectId));
+
+            currentTodos = currentTodosByProject.entrySet().stream()
+                    .flatMap(entry -> {
+                        Long projectId = entry.getKey();
+                        List<Todo> projectTodos = entry.getValue();
+
+                        if (projectTodos.size() > 3) {
+                            // 项目待办数大于3个，只显示时间范围内的
+                            LocalDate weekAgo = LocalDate.now().minusDays(7);
+                            LocalDate weekLater = LocalDate.now().plusDays(7);
+
+                            return projectTodos.stream().filter(todo -> {
+                                if (todo.getDueDate() != null) {
+                                    return !todo.getDueDate().isBefore(weekAgo) &&
+                                            !todo.getDueDate().isAfter(weekLater);
+                                }
+                                return true; // 没有截止日期的任务仍然显示
+                            });
+                        }
+                        return projectTodos.stream(); // 待办数<=3个的项目显示所有任务
+                    })
+                    .collect(Collectors.toList());
+
+            nextTodos = nextTodosByProject.entrySet().stream()
+                    .flatMap(entry -> {
+                        Long projectId = entry.getKey();
+                        List<Todo> projectTodos = entry.getValue();
+
+                        if (projectTodos.size() > 3) {
+                            // 项目待办数大于3个，只显示时间范围内的
+                            LocalDate weekAgo = LocalDate.now().minusDays(7);
+                            LocalDate weekLater = LocalDate.now().plusDays(7);
+
+                            return projectTodos.stream().filter(todo -> {
+                                if (todo.getDueDate() != null) {
+                                    return !todo.getDueDate().isBefore(weekAgo) &&
+                                            !todo.getDueDate().isAfter(weekLater);
+                                }
+                                return true; // 没有截止日期的任务仍然显示
+                            });
+                        }
+                        return projectTodos.stream(); // 待办数<=3个的项目显示所有任务
+                    })
+                    .collect(Collectors.toList());
+        }
+
         StringBuilder content = new StringBuilder();
         switch (type) {
             case "WEEKLY":
@@ -263,6 +317,30 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
             content.append("\n#### ").append(project.getName()).append("\n");
             hasCurrentWork = true;
 
+            // 在模糊模式下，为每个项目添加任务总结
+            if (fuzzyMode && !projectTodos.isEmpty()) {
+                // 计算任务统计 - 基于本期工作的任务（考虑时间范围）
+                List<Todo> currentProjectTodos = currentTodos.stream()
+                        .filter(todo -> project.getId().equals(todo.getProjectId()))
+                        .collect(Collectors.toList());
+
+                int totalCount = currentProjectTodos.size();
+                int completedCount = (int) currentProjectTodos.stream()
+                        .filter(todo -> "DONE".equals(todo.getStatus()))
+                        .count();
+                int inProgressCount = (int) currentProjectTodos.stream()
+                        .filter(todo -> "PROGRESS".equals(todo.getStatus()))
+                        .count();
+
+                String period = type.equals("WEEKLY") ? "本周"
+                        : type.equals("BIWEEKLY") ? "本双周"
+                                : type.equals("MONTHLY") ? "本月" : "本期";
+
+                content.append("【总结】").append(period).append("识别").append(totalCount)
+                        .append("项待办，其中已完成").append(completedCount)
+                        .append("项，进行中").append(inProgressCount).append("项\n\n");
+            }
+
             if (!projectTodos.isEmpty()) {
                 for (Todo todo : projectTodos) {
                     content.append("- ")
@@ -277,7 +355,9 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
                     } else if (todo.getDueDate() != null) {
                         content.append(" - 截止：").append(todo.getDueDate());
                     }
-                    if (todo.getDueDate() != null) {
+
+                    // 模糊模式下不显示按时/逾期状态
+                    if (!fuzzyMode && todo.getDueDate() != null) {
                         java.time.LocalDate due = todo.getDueDate();
                         if ("DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null) {
                             java.time.LocalDate completed = todo.getCompletedTime().toLocalDate();
@@ -341,14 +421,18 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
                     }
                     if (todo.getDueDate() != null) {
                         content.append(" - 截止：").append(todo.getDueDate());
-                        java.time.LocalDate due = todo.getDueDate();
-                        long diff = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), due);
-                        if (diff > 0) {
-                            content.append("，剩余").append(diff).append("天");
-                        } else if (diff == 0) {
-                            content.append("，今天截止");
-                        } else {
-                            content.append("，已逾期").append(Math.abs(diff)).append("天");
+
+                        // 模糊模式下不显示逾期天数
+                        if (!fuzzyMode) {
+                            java.time.LocalDate due = todo.getDueDate();
+                            long diff = java.time.temporal.ChronoUnit.DAYS.between(java.time.LocalDate.now(), due);
+                            if (diff > 0) {
+                                content.append("，剩余").append(diff).append("天");
+                            } else if (diff == 0) {
+                                content.append("，今天截止");
+                            } else {
+                                content.append("，已逾期").append(Math.abs(diff)).append("天");
+                            }
                         }
                     }
                     content.append("\n");
