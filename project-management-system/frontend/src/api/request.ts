@@ -54,8 +54,18 @@ request.interceptors.response.use(
       if (!isHandlingAuth) {
         isHandlingAuth = true;
 
+        // 清理本地存储
         localStorage.removeItem("auth-token");
         localStorage.removeItem("current-user");
+
+        // 清理所有stores数据
+        try {
+          import("@/stores").then(({ clearAllStoresData }) => {
+            clearAllStoresData();
+          });
+        } catch (error) {
+          console.warn("清理stores数据失败:", error);
+        }
 
         // 显示登录过期提示
         Message.error({
@@ -92,8 +102,18 @@ request.interceptors.response.use(
           if (!isHandlingAuth) {
             isHandlingAuth = true;
 
+            // 清理本地存储
             localStorage.removeItem("auth-token");
             localStorage.removeItem("current-user");
+
+            // 清理所有stores数据
+            try {
+              import("@/stores").then(({ clearAllStoresData }) => {
+                clearAllStoresData();
+              });
+            } catch (error) {
+              console.warn("清理stores数据失败:", error);
+            }
 
             // 显示登录过期提示
             Message.error({

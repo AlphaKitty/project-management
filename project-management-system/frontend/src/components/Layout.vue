@@ -227,12 +227,18 @@ const handleCreate = () => {
 const userStore = useUserStore()
 
 // 处理登出
-const handleLogout = () => {
+const handleLogout = async () => {
   console.log('🚀 用户点击了退出登录')
-  // 调用用户商店的 logout 方法
-  userStore.logout()
-  // 跳转到登录页面
-  router.push('/login')
+  try {
+    // 调用用户商店的 logout 方法
+    await userStore.logout()
+    // 跳转到登录页面
+    router.push('/login')
+  } catch (error) {
+    console.error('❌ 登出过程中出错:', error)
+    // 即使出错也要跳转到登录页面
+    router.push('/login')
+  }
 }
 </script>
 

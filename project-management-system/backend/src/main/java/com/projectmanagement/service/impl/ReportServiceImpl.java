@@ -308,6 +308,51 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
         content.append("### 本期工作\n");
         boolean hasCurrentWork = false;
 
+        // 在模糊模式下，生成整体总结
+        if (fuzzyMode) {
+            // 统计项目数量和状态
+            int totalProjects = projectMap.size();
+            int inProgressProjects = 0;
+            int completedProjects = 0;
+
+            for (com.projectmanagement.entity.Project project : projectMap.values()) {
+                if ("PROGRESS".equals(project.getStatus())) {
+                    inProgressProjects++;
+                } else if ("COMPLETED".equals(project.getStatus())) {
+                    completedProjects++;
+                }
+            }
+
+            // 统计待办任务数量
+            int totalCurrentTodos = currentTodos.size();
+            int completedTodosCount = (int) currentTodos.stream()
+                    .filter(todo -> "DONE".equals(todo.getStatus()))
+                    .count();
+            int inProgressTodosCount = (int) currentTodos.stream()
+                    .filter(todo -> "PROGRESS".equals(todo.getStatus()))
+                    .count();
+
+            // 统计下期待办任务数量
+            int nextTodosCount = nextTodos.size();
+
+            String period = type.equals("WEEKLY") ? "本周"
+                    : type.equals("BIWEEKLY") ? "本双周"
+                            : type.equals("MONTHLY") ? "本月" : "本期";
+
+            String nextPeriod = type.equals("WEEKLY") ? "下周"
+                    : type.equals("BIWEEKLY") ? "下双周"
+                            : type.equals("MONTHLY") ? "下月" : "下期";
+
+            content.append("【总结】共").append(totalProjects).append("个项目，其中")
+                    .append(inProgressProjects).append("个进行中，")
+                    .append(completedProjects).append("个已完成；")
+                    .append(period).append("识别").append(totalCurrentTodos)
+                    .append("项待办，其中已完成").append(completedTodosCount)
+                    .append("项，进行中").append(inProgressTodosCount).append("项；")
+                    .append(nextPeriod).append("预计").append(nextTodosCount)
+                    .append("项待办，暂无风险。\n\n");
+        }
+
         for (com.projectmanagement.entity.Project project : projectMap.values()) {
             List<Todo> projectTodos = currentTodos.stream()
                     .filter(todo -> project.getId().equals(todo.getProjectId()))
@@ -316,30 +361,6 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
 
             content.append("\n#### ").append(project.getName()).append("\n");
             hasCurrentWork = true;
-
-            // 在模糊模式下，为每个项目添加任务总结
-            if (fuzzyMode && !projectTodos.isEmpty()) {
-                // 计算任务统计 - 基于本期工作的任务（考虑时间范围）
-                List<Todo> currentProjectTodos = currentTodos.stream()
-                        .filter(todo -> project.getId().equals(todo.getProjectId()))
-                        .collect(Collectors.toList());
-
-                int totalCount = currentProjectTodos.size();
-                int completedCount = (int) currentProjectTodos.stream()
-                        .filter(todo -> "DONE".equals(todo.getStatus()))
-                        .count();
-                int inProgressCount = (int) currentProjectTodos.stream()
-                        .filter(todo -> "PROGRESS".equals(todo.getStatus()))
-                        .count();
-
-                String period = type.equals("WEEKLY") ? "本周"
-                        : type.equals("BIWEEKLY") ? "本双周"
-                                : type.equals("MONTHLY") ? "本月" : "本期";
-
-                content.append("【总结】").append(period).append("识别").append(totalCount)
-                        .append("项待办，其中已完成").append(completedCount)
-                        .append("项，进行中").append(inProgressCount).append("项\n\n");
-            }
 
             if (!projectTodos.isEmpty()) {
                 for (Todo todo : projectTodos) {

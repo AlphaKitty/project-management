@@ -252,11 +252,25 @@ export const useUserStore = defineStore("user", () => {
       const response = await userApi.login(username, password);
 
       if (response.data.success) {
+        console.log("🎉 登录成功，开始设置新用户状态...");
+
         // 重置登录尝试次数
         loginAttempts.value = 0;
         lockoutTime.value = null;
 
-        // 保存用户信息和令牌
+        // 清理旧的用户数据（防止数据污染）
+        clearAllCache();
+
+        // 清理其他stores的缓存数据
+        try {
+          const { clearAllStoresData } = await import("../stores");
+          clearAllStoresData();
+          console.log("✅ 旧数据清理完成");
+        } catch (error) {
+          console.warn("⚠️ 清理旧数据时出错:", error);
+        }
+
+        // 保存新用户信息和令牌
         currentUser.value = response.data.user;
         token.value = response.data.token;
 
@@ -274,6 +288,7 @@ export const useUserStore = defineStore("user", () => {
           data: { action: "login", user: response.data.user },
         });
 
+        console.log("✅ 新用户状态设置完成");
         return { success: true, user: response.data.user };
       } else {
         loginAttempts.value++;
@@ -294,8 +309,17 @@ export const useUserStore = defineStore("user", () => {
   };
 
   // 登出（增强版）
-  const logout = () => {
-    // 清除状态
+  const logout = async () => {
+    console.log("🚀 开始用户登出，清理所有状态...");
+
+    try {
+      // 先调用后端登出API
+      await userApi.logout();
+    } catch (error) {
+      console.warn("⚠️ 后端登出失败，继续清理前端状态:", error);
+    }
+
+    // 清除用户状态
     currentUser.value = null;
     token.value = null;
     loginAttempts.value = 0;
@@ -305,8 +329,19 @@ export const useUserStore = defineStore("user", () => {
     localStorage.removeItem("auth-token");
     localStorage.removeItem("current-user");
 
-    // 清除缓存
+    // 清除用户缓存
     clearAllCache();
+
+    // 清除全局状态
+    globalState.clear();
+
+    // 动态清理其他stores数据
+    try {
+      const { clearAllStoresData } = await import("../stores");
+      clearAllStoresData();
+    } catch (error) {
+      console.error("❌ 清理其他stores数据失败:", error);
+    }
 
     // 添加同步事件
     globalState.addSyncEvent({
@@ -314,6 +349,8 @@ export const useUserStore = defineStore("user", () => {
       entity: "auth",
       data: { action: "logout" },
     });
+
+    console.log("✅ 用户登出完成");
   };
 
   // 从本地存储恢复用户状态
