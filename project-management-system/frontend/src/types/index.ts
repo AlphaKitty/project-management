@@ -164,3 +164,59 @@ export const StatusColors = {
   TODO: "orange",
   DONE: "green",
 };
+
+// 智能工作推荐相关类型
+export interface WorkRecommendation {
+  id: string;
+  type:
+    | "URGENT"
+    | "STAGNANT"
+    | "PROGRESS"
+    | "COLLABORATION"
+    | "RISK"
+    | "SUGGESTION";
+  title: string;
+  description: string;
+  projectId?: number;
+  todoId?: number;
+  priority: "HIGH" | "MEDIUM" | "LOW";
+  actionType:
+    | "CREATE_TODO"
+    | "UPDATE_PROJECT"
+    | "REVIEW"
+    | "DISCUSSION"
+    | "VIEW_PROJECT"
+    | "VIEW_TODO";
+  actionData?: any;
+  createTime: string;
+}
+
+export interface WorkRecommendationSummary {
+  urgent: WorkRecommendation[];
+  stagnant: WorkRecommendation[];
+  progress: WorkRecommendation[];
+  collaboration: WorkRecommendation[];
+  risk: WorkRecommendation[];
+  suggestions: WorkRecommendation[];
+  totalCount: number;
+}
+
+// 推荐类型标签映射
+export const RecommendationTypeLabels = {
+  URGENT: "紧急推进",
+  STAGNANT: "项目停滞",
+  PROGRESS: "项目推进",
+  COLLABORATION: "协作待办",
+  RISK: "风险预警",
+  SUGGESTION: "智能建议",
+};
+
+// 推荐类型图标映射
+export const RecommendationTypeIcons = {
+  URGENT: "🔥",
+  STAGNANT: "🛑",
+  PROGRESS: "⚡",
+  COLLABORATION: "🤝",
+  RISK: "⚠️",
+  SUGGESTION: "💡",
+};

@@ -362,6 +362,12 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
             content.append("\n#### ").append(project.getName()).append("\n");
             hasCurrentWork = true;
 
+            // 在模糊模式下添加节点状态信息
+            if (fuzzyMode) {
+                String nodeStatus = generateNodeStatus(project, projectTodos, nextTodos);
+                content.append(nodeStatus).append("\n\n");
+            }
+
             if (!projectTodos.isEmpty()) {
                 for (Todo todo : projectTodos) {
                     content.append("- ")
@@ -535,6 +541,146 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
             default:
                 return 0;
         }
+    }
+
+    /**
+     * 生成节点状态信息（模糊模式下使用）
+     */
+    private String generateNodeStatus(com.projectmanagement.entity.Project project, List<Todo> currentTodos,
+            List<Todo> nextTodos) {
+        if (project == null) {
+            return "【节点状态】项目信息不完整";
+        }
+
+        StringBuilder status = new StringBuilder();
+        status.append("【节点状态】");
+
+        // 1. 解析里程碑信息
+        String currentMilestone = "未知里程碑";
+        double milestoneProgress = 0.0;
+
+        if (project.getMilestones() != null && !project.getMilestones().trim().isEmpty()) {
+            try {
+                // 解析里程碑JSON
+                com.google.gson.Gson gson = new com.google.gson.Gson();
+                com.google.gson.reflect.TypeToken<List<java.util.Map<String, Object>>> typeToken = new com.google.gson.reflect.TypeToken<List<java.util.Map<String, Object>>>() {
+                };
+                List<java.util.Map<String, Object>> milestones = gson.fromJson(project.getMilestones(),
+                        typeToken.getType());
+
+                if (milestones != null && !milestones.isEmpty()) {
+                    // 查找当前里程碑（第一个未完成的或最后一个）
+                    java.util.Map<String, Object> currentMilestoneObj = null;
+                    java.util.Map<String, Object> prevMilestoneObj = null;
+
+                    for (int i = 0; i < milestones.size(); i++) {
+                        java.util.Map<String, Object> milestone = milestones.get(i);
+                        String status_str = (String) milestone.get("status");
+
+                        if (!"COMPLETED".equals(status_str)) {
+                            currentMilestoneObj = milestone;
+                            if (i > 0) {
+                                prevMilestoneObj = milestones.get(i - 1);
+                            }
+                            break;
+                        }
+                    }
+
+                    // 如果所有里程碑都完成了，使用最后一个
+                    if (currentMilestoneObj == null && !milestones.isEmpty()) {
+                        currentMilestoneObj = milestones.get(milestones.size() - 1);
+                        if (milestones.size() > 1) {
+                            prevMilestoneObj = milestones.get(milestones.size() - 2);
+                        }
+                    }
+
+                    if (currentMilestoneObj != null) {
+                        currentMilestone = (String) currentMilestoneObj.get("name");
+
+                        // 计算里程碑进度（基于时间）
+                        String dueDateStr = (String) currentMilestoneObj.get("dueDate");
+                        if (dueDateStr != null && !dueDateStr.trim().isEmpty()) {
+                            try {
+                                LocalDate currentDueDate = LocalDate.parse(dueDateStr);
+                                LocalDate prevDueDate = null;
+
+                                if (prevMilestoneObj != null) {
+                                    String prevDueDateStr = (String) prevMilestoneObj.get("dueDate");
+                                    if (prevDueDateStr != null && !prevDueDateStr.trim().isEmpty()) {
+                                        prevDueDate = LocalDate.parse(prevDueDateStr);
+                                    }
+                                }
+
+                                // 如果没有前一个里程碑，使用项目开始时间
+                                if (prevDueDate == null) {
+                                    prevDueDate = project.getStartDate() != null ? project.getStartDate()
+                                            : currentDueDate.minusDays(30);
+                                }
+
+                                LocalDate today = LocalDate.now();
+                                long totalDays = ChronoUnit.DAYS.between(prevDueDate, currentDueDate);
+                                long elapsedDays = ChronoUnit.DAYS.between(prevDueDate, today);
+
+                                if (totalDays > 0) {
+                                    milestoneProgress = Math.max(0,
+                                            Math.min(100, (double) elapsedDays / totalDays * 100));
+                                }
+                            } catch (Exception e) {
+                                // 日期解析失败，使用默认进度
+                                milestoneProgress = project.getProgress() != null ? project.getProgress() : 0;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // 里程碑JSON解析失败，使用项目名称作为里程碑
+                currentMilestone = project.getName();
+                milestoneProgress = project.getProgress() != null ? project.getProgress() : 0;
+            }
+        } else {
+            // 没有里程碑信息，使用项目名称
+            currentMilestone = project.getName();
+            milestoneProgress = project.getProgress() != null ? project.getProgress() : 0;
+        }
+
+        status.append("当前里程碑").append(currentMilestone)
+                .append("，当前里程碑进度").append(String.format("%.0f", milestoneProgress)).append("%");
+
+        // 2. 统计待办任务数量
+        List<Todo> projectCurrentTodos = currentTodos.stream()
+                .filter(todo -> project.getId().equals(todo.getProjectId()))
+                .collect(Collectors.toList());
+
+        List<Todo> projectNextTodos = nextTodos.stream()
+                .filter(todo -> project.getId().equals(todo.getProjectId()))
+                .collect(Collectors.toList());
+
+        // 合并当前和下期的待办任务来统计总数
+        List<Todo> allProjectTodos = new java.util.ArrayList<>();
+        allProjectTodos.addAll(projectCurrentTodos);
+        // 添加下期计划中不在当前工作中的任务
+        for (Todo nextTodo : projectNextTodos) {
+            boolean exists = projectCurrentTodos.stream()
+                    .anyMatch(currentTodo -> currentTodo.getId().equals(nextTodo.getId()));
+            if (!exists) {
+                allProjectTodos.add(nextTodo);
+            }
+        }
+
+        int totalTodos = allProjectTodos.size();
+        int completedCount = (int) allProjectTodos.stream()
+                .filter(todo -> "DONE".equals(todo.getStatus()))
+                .count();
+        int inProgressCount = (int) allProjectTodos.stream()
+                .filter(todo -> "PROGRESS".equals(todo.getStatus()))
+                .count();
+        int todoCount = totalTodos - completedCount - inProgressCount;
+
+        status.append("，共识别").append(totalTodos).append("个待办")
+                .append("，进行中").append(inProgressCount).append("个")
+                .append("，已完成").append(completedCount).append("个");
+
+        return status.toString();
     }
 
     /**

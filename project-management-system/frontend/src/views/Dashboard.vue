@@ -150,6 +150,9 @@
         </div>
       </a-col>
     </a-row>
+
+    <!-- 智能工作推荐浮动组件 -->
+    <WorkRecommendationWidget />
   </div>
 </template>
 
@@ -165,6 +168,7 @@ import {
 import { useProjectStore } from '@/stores/projects'
 import { useTodoStore } from '@/stores/todos'
 import { useUserStore } from '@/stores/user'
+import WorkRecommendationWidget from '@/components/WorkRecommendationWidget.vue'
 import { StatusLabels, StatusColors } from '@/types'
 import type { Todo } from '@/types'
 

@@ -417,14 +417,14 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
             for (Todo todo : inProgressTodos) {
                 content.append("- ").append(todo.getTitle());
                 if (todo.getDueDate() != null) {
-                    long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), todo.getDueDate());
-                    if (daysLeft > 0) {
-                        content.append("（剩余").append(daysLeft).append("天）");
-                    } else if (daysLeft == 0) {
-                        content.append("（今日截止）");
-                    } else {
-                        content.append("（已逾期").append(Math.abs(daysLeft)).append("天）");
-                    }
+                    // long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), todo.getDueDate());
+                    // if (daysLeft > 0) {
+                    // content.append("（剩余").append(daysLeft).append("天）");
+                    // } else if (daysLeft == 0) {
+                    // content.append("（今日截止）");
+                    // } else {
+                    // content.append("（已逾期").append(Math.abs(daysLeft)).append("天）");
+                    // }
                 }
                 content.append("\n");
             }
@@ -678,7 +678,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
             content.append("（预估进度").append(String.format("%.0f", progress * 100)).append("%）");
 
             if (daysLeft <= 0) {
-                content.append("，已到期，需加快推进");
+                content.append("，重点推进");
             } else if (daysLeft <= 7) {
                 content.append("，").append(daysLeft).append("天内截止，重点推进");
             } else {

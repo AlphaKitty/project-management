@@ -1,0 +1,317 @@
+<template>
+  <div class="work-recommendation-widget" :class="{ 'expanded': isExpanded }">
+    <!-- 浮动按钮 -->
+    <div class="widget-trigger" @click="toggleExpanded" v-if="!isExpanded">
+      <div class="trigger-content">
+        <div class="trigger-icon">💡</div>
+        <div class="trigger-text">工作推荐</div>
+        <div class="trigger-badge" v-if="totalCount > 0">{{ totalCount }}</div>
+      </div>
+    </div>
+
+    <!-- 展开的推荐面板 -->
+    <div class="widget-panel" v-if="isExpanded">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="title-icon">💡</span>
+          <span class="title-text">智能工作推荐</span>
+          <span class="total-count" v-if="totalCount > 0">({{ totalCount }})</span>
+        </div>
+        <div class="panel-actions">
+          <a-button size="small" @click="refreshRecommendations" :loading="loading">
+            <template #icon><icon-refresh /></template>
+          </a-button>
+          <a-button size="small" @click="toggleExpanded">
+            <template #icon><icon-close /></template>
+          </a-button>
+        </div>
+      </div>
+
+      <div class="panel-content">
+        <div class="recommendation-sections">
+          <!-- 紧急推进 -->
+          <div class="recommendation-section" v-if="recommendations.urgent.length > 0">
+            <div class="section-header">
+              <span class="section-icon">🔥</span>
+              <span class="section-title">紧急推进</span>
+              <span class="section-count">({{ recommendations.urgent.length }})</span>
+            </div>
+            <div class="recommendation-list">
+              <div class="recommendation-item urgent" v-for="item in recommendations.urgent" :key="item.id"
+                @click="handleRecommendationClick(item)">
+                <div class="item-content">
+                  <div class="item-title">{{ item.title }}</div>
+                  <div class="item-description">{{ item.description }}</div>
+                </div>
+                <div class="item-actions">
+                  <a-button size="mini" type="primary" @click.stop="executeRecommendation(item)">
+                    立即处理
+                  </a-button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 项目停滞 -->
+          <div class="recommendation-section" v-if="recommendations.stagnant.length > 0">
+            <div class="section-header">
+              <span class="section-icon">🛑</span>
+              <span class="section-title">项目停滞</span>
+              <span class="section-count">({{ recommendations.stagnant.length }})</span>
+            </div>
+            <div class="recommendation-list">
+              <div class="recommendation-item stagnant" v-for="item in recommendations.stagnant" :key="item.id"
+                @click="handleRecommendationClick(item)">
+                <div class="item-content">
+                  <div class="item-title">{{ item.title }}</div>
+                  <div class="item-description">{{ item.description }}</div>
+                </div>
+                <div class="item-actions">
+                  <a-button size="mini" type="outline" @click.stop="executeRecommendation(item)">
+                    去推进
+                  </a-button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 空状态 -->
+          <div class="empty-state" v-if="totalCount === 0">
+            <div class="empty-icon">✨</div>
+            <div class="empty-text">暂无工作推荐</div>
+            <div class="empty-description">你的项目管理状态良好</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { Message } from '@arco-design/web-vue'
+import { IconRefresh, IconClose } from '@arco-design/web-vue/es/icon'
+import { workRecommendationApi } from '@/api/workRecommendations'
+import type { WorkRecommendationSummary, WorkRecommendation } from '@/types'
+import { useRouter } from 'vue-router'
+
+// 状态管理
+const isExpanded = ref(false)
+const loading = ref(false)
+const recommendations = ref<WorkRecommendationSummary>({
+  urgent: [],
+  stagnant: [],
+  progress: [],
+  collaboration: [],
+  risk: [],
+  suggestions: [],
+  totalCount: 0
+})
+
+// 路由
+const router = useRouter()
+
+// 计算属性
+const totalCount = computed(() => recommendations.value.totalCount)
+
+// 切换展开状态
+const toggleExpanded = () => {
+  isExpanded.value = !isExpanded.value
+  if (isExpanded.value) {
+    loadRecommendations()
+  }
+}
+
+// 加载推荐数据
+const loadRecommendations = async () => {
+  loading.value = true
+  try {
+    const response = await workRecommendationApi.getRecommendations()
+    if (response.code === 0) {
+      recommendations.value = response.data
+    } else {
+      Message.error(response.msg || '加载推荐失败')
+    }
+  } catch (error) {
+    console.error('加载推荐失败:', error)
+    Message.error('加载推荐失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 刷新推荐
+const refreshRecommendations = () => {
+  loadRecommendations()
+}
+
+// 处理推荐项点击
+const handleRecommendationClick = (item: WorkRecommendation) => {
+  if (item.actionType === 'VIEW_PROJECT' && item.projectId) {
+    // 跳转到项目页面，并尝试定位到具体项目
+    router.push('/projects')
+    // 延迟一点时间后触发页面内搜索或定位（如果项目页面支持的话）
+    setTimeout(() => {
+      const event = new CustomEvent('locateProject', { detail: { projectId: item.projectId } })
+      window.dispatchEvent(event)
+    }, 500)
+  } else if (item.actionType === 'VIEW_TODO' && item.todoId) {
+    // 跳转到待办页面，并尝试定位到具体待办
+    router.push('/todos')
+    setTimeout(() => {
+      const event = new CustomEvent('locateTodo', { detail: { todoId: item.todoId } })
+      window.dispatchEvent(event)
+    }, 500)
+  } else if (item.actionType === 'CREATE_TODO') {
+    // 跳转到待办页面创建新任务
+    router.push('/todos')
+  } else {
+    // 默认跳转到项目页面
+    router.push('/projects')
+  }
+}
+
+// 执行推荐操作
+const executeRecommendation = async (item: WorkRecommendation) => {
+  try {
+    const response = await workRecommendationApi.executeRecommendation(item.id, item.actionData)
+    if (response.code === 0) {
+      // Message.success('操作成功')
+      handleRecommendationClick(item)
+      loadRecommendations()
+    } else {
+      Message.error(response.msg || '操作失败')
+    }
+  } catch (error) {
+    console.error('执行推荐操作失败:', error)
+    Message.error('操作失败')
+  }
+}
+
+// 生命周期
+onMounted(() => {
+  loadRecommendations()
+})
+</script>
+
+<style scoped>
+.work-recommendation-widget {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  z-index: 1000;
+}
+
+.widget-trigger {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 25px;
+  padding: 12px 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+}
+
+.widget-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+}
+
+.trigger-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trigger-badge {
+  background: #ff4757;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.widget-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  width: 380px;
+  max-height: 70vh;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.panel-content {
+  max-height: calc(70vh - 60px);
+  overflow-y: auto;
+}
+
+.recommendation-section {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.recommendation-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  cursor: pointer;
+}
+
+.recommendation-item:hover {
+  background: #f8f9ff;
+}
+
+.recommendation-item.urgent {
+  border-left: 4px solid #ff4757;
+}
+
+.recommendation-item.stagnant {
+  border-left: 4px solid #ffa502;
+}
+
+.item-content {
+  flex: 1;
+  margin-right: 12px;
+}
+
+.item-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.item-description {
+  font-size: 12px;
+  color: #666;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+</style>

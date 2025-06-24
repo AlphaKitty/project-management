@@ -707,60 +707,210 @@ const updateWorkPlans = async () => {
   }
 }
 
-// 导出Excel功能
-const exportToExcel = () => {
-  try {
-    // 准备导出数据
-    const exportData = projectStore.overviewProjects.map(project => {
-      const milestones = getMilestones(project)
-      const todos = getUncompletedTodos(project)
 
-      return {
-        '项目名称': project.name,
-        '状态': getStatusLabel(project.status),
-        '进度': `${project.progress}%`,
-        '创建人': getCreatorName(project),
-        '责任人': getAssigneeName(project),
-        '里程碑': milestones.map(m => `${m.name}(${getMilestoneStatusLabel(m.status)})`).join('; '),
-        '本周工作': project.thisWeekWork || '暂无本周工作',
-        '下周计划': project.nextWeekPlan || '暂无下周计划',
-        '待办事项': todos.map(t => `${t.title}(${getStatusLabel(t.status)})`).join('; '),
-        '创建时间': formatDateTime(project.createTime)
+
+// 导出Excel功能
+const exportToExcel = async () => {
+  try {
+    // 动态导入ExcelJS
+    const ExcelJS = await import('exceljs')
+
+    // 创建工作簿
+    const workbook = new ExcelJS.Workbook()
+    const worksheet = workbook.addWorksheet('项目概览')
+
+    // 定义列
+    worksheet.columns = [
+      { header: '项目名称', key: 'name', width: 25 },
+      { header: '状态', key: 'status', width: 12 },
+      { header: '进度', key: 'progress', width: 10 },
+      { header: '责任人', key: 'assignee', width: 12 },
+      { header: '里程碑', key: 'milestones', width: 60 },
+      { header: '本周工作', key: 'thisWeek', width: 40 },
+      { header: '下周计划', key: 'nextWeek', width: 40 },
+      { header: '待办事项', key: 'todos', width: 50 },
+      { header: '风险', key: 'risk', width: 15 }
+    ]
+
+    // 设置表头样式
+    const headerRow = worksheet.getRow(1)
+    headerRow.font = {
+      name: '微软雅黑',
+      size: 16,
+      bold: true,
+      color: { argb: 'FFFFFFFF' }
+    }
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF52C41A' }
+    }
+    headerRow.alignment = {
+      vertical: 'middle',
+      horizontal: 'center'
+    }
+    headerRow.height = 40
+
+    // 添加表头边框
+    headerRow.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thick', color: { argb: 'FF000000' } },
+        bottom: { style: 'thick', color: { argb: 'FF000000' } },
+        left: { style: 'thick', color: { argb: 'FF000000' } },
+        right: { style: 'thick', color: { argb: 'FF000000' } }
       }
     })
 
-    // 创建工作簿
-    const ws = XLSX.utils.json_to_sheet(exportData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, '项目概览')
+    // 添加数据
+    projectStore.overviewProjects.forEach((project, index) => {
+      const milestones = getMilestones(project)
+      const todos = getUncompletedTodos(project)
 
-    // 设置列宽
-    const colWidths = [
-      { wch: 30 }, // 项目名称
-      { wch: 10 }, // 状态
-      { wch: 8 },  // 进度
-      { wch: 12 }, // 创建人
-      { wch: 12 }, // 责任人
-      { wch: 40 }, // 里程碑
-      { wch: 30 }, // 本周工作
-      { wch: 30 }, // 下周计划
-      { wch: 40 }, // 待办事项
-      { wch: 12 }  // 创建时间
-    ]
-    ws['!cols'] = colWidths
+      const rowData = {
+        name: project.name,
+        status: getStatusLabel(project.status),
+        progress: `${project.progress}%`,
+        assignee: getAssigneeName(project),
+        milestones: milestones.map(m => {
+          let milestoneText = `${m.name}(${getMilestoneStatusLabel(m.status)})`
+          if (m.dueDate) {
+            milestoneText += ` - ${m.dueDate}`
+          }
+          return milestoneText
+        }).join('\n'),
+        thisWeek: project.thisWeekWork || '暂无本周工作',
+        nextWeek: project.nextWeekPlan || '暂无下周计划',
+        todos: todos.map(t => {
+          let todoText = `${t.title}(${getStatusLabel(t.status)})`
 
-    // 生成文件名
+          // 添加责任人
+          if (t.assignee) {
+            todoText += ` - 责任人：${t.assignee.nickname}`
+          } else {
+            todoText += ` - 责任人：未分配`
+          }
+
+          // 添加截止日期和剩余天数
+          if (t.dueDate) {
+            const dueDate = new Date(t.dueDate)
+            const today = new Date()
+            const timeDiff = dueDate.getTime() - today.getTime()
+            const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24))
+
+            todoText += ` - 截止：${t.dueDate}`
+
+            if (daysDiff > 0) {
+              todoText += ` - 剩余${daysDiff}天`
+            } else if (daysDiff === 0) {
+              todoText += ` - 今日截止`
+            } else {
+              todoText += ` - 已逾期${Math.abs(daysDiff)}天`
+            }
+          } else {
+            todoText += ` - 截止：无期限`
+          }
+
+          return todoText
+        }).join('\n'),
+        risk: '暂无'
+      }
+
+      const row = worksheet.addRow(rowData)
+      const rowNumber = index + 2
+
+      // 设置数据行基础样式
+      row.font = { name: '微软雅黑', size: 10, color: { argb: 'FF333333' } }
+      row.alignment = {
+        vertical: 'top',
+        horizontal: 'left',
+        wrapText: true
+      }
+      row.height = 80
+
+      // 交替行背景色
+      if (rowNumber % 2 === 0) {
+        row.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8F9FA' }
+          }
+        })
+      }
+
+      // 添加边框
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thick', color: { argb: 'FF000000' } },
+          bottom: { style: 'thick', color: { argb: 'FF000000' } },
+          left: { style: 'thick', color: { argb: 'FF000000' } },
+          right: { style: 'thick', color: { argb: 'FF000000' } }
+        }
+      })
+
+      // 项目名称列居中
+      const nameCell = row.getCell(1)
+      nameCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+
+      // 状态列特殊颜色和居中
+      const statusCell = row.getCell(2)
+      statusCell.alignment = { vertical: 'middle', horizontal: 'center' }
+      const statusValue = rowData.status
+      if (statusValue === '进行中') {
+        statusCell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF52C41A' } }
+      } else if (statusValue === '已完成') {
+        statusCell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF1890FF' } }
+      } else if (statusValue === '待启动') {
+        statusCell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FFFAAD14' } }
+      } else if (statusValue === '已取消') {
+        statusCell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FFFF4D4F' } }
+      }
+
+      // 进度列样式和居中
+      const progressCell = row.getCell(3)
+      progressCell.alignment = { vertical: 'middle', horizontal: 'center' }
+      progressCell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF1890FF' } }
+
+      // 责任人列居中
+      const assigneeCell = row.getCell(4)
+      assigneeCell.alignment = { vertical: 'middle', horizontal: 'center' }
+
+      // 里程碑列居中
+      const milestoneCell = row.getCell(5)
+      milestoneCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+
+      // 风险列居中
+      const riskCell = row.getCell(9)
+      riskCell.alignment = { vertical: 'middle', horizontal: 'center' }
+    })
+
+    // 冻结表头
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }]
+
+    // 添加自动筛选
+    worksheet.autoFilter = 'A1:I1'
+
+    // 生成文件
     const fileName = `项目概览_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`
+    const buffer = await workbook.xlsx.writeBuffer()
 
-    // 导出文件
-    XLSX.writeFile(wb, fileName)
+    // 创建下载链接
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    link.click()
+    window.URL.revokeObjectURL(url)
 
     Message.success('Excel导出成功')
   } catch (error) {
     console.error('导出Excel失败:', error)
     Message.error('Excel导出失败')
   }
-};
+}
 
 // 页面加载时获取数据
 onMounted(async () => {
