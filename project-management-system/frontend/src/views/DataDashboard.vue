@@ -32,7 +32,7 @@
                 <a-statistic title="总项目数" :value="statistics.totalProjects" :value-style="{ color: '#1890ff' }" />
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.projectTrend > 0 ? '+' : '' }}{{ statistics.projectTrend
-                    }}</span>
+                        }}</span>
                     <span class="trend-label">{{ timeRangeText }}新增</span>
                 </div>
             </a-card>
@@ -42,7 +42,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.userActiveTrend > 0 ? '+' : '' }}{{
                         statistics.userActiveTrend
-                    }}</span>
+                        }}</span>
                     <span class="trend-label">{{ timeRangeText }}操作</span>
                 </div>
             </a-card>
@@ -61,7 +61,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.completionTrend > 0 ? '+' : '' }}{{
                         statistics.completionTrend
-                    }}%</span>
+                        }}%</span>
                     <span class="trend-label">较上期</span>
                 </div>
             </a-card>
@@ -200,14 +200,23 @@
                                     <li><strong>完成率权重：</strong>任务完成率 × 0.30</li>
                                     <li><strong>难度权重：</strong>承担工作量难度得分 × 0.25（任务数越多得分越高）</li>
                                     <li><strong>活跃度权重：</strong>近期活跃度得分 × 0.25</li>
-                                    <li><strong>质量权重：</strong>按时完成率 × 0.20</li>
+                                    <li><strong>质量权重：</strong>任务完成质量得分 × 0.20（基于时间表现）</li>
+                                </ul>
+
+                                <h4>质量评分规则：</h4>
+                                <ul>
+                                    <li><strong>已完成任务：</strong>按时完成100分，提前完成额外加分，延期完成根据延期时长扣分</li>
+                                    <li><strong>未完成任务：</strong>未到期不扣分(60分)，逾期根据逾期时长扣分</li>
+                                    <li><strong>延期惩罚：</strong>延期天数≥任务总时长则得0分，确保公平性</li>
+                                    <li><strong>任务激励：</strong>有任务的用户比无任务用户得分高，鼓励积极承担工作</li>
                                 </ul>
 
                                 <div class="rule-note">
                                     <h5>📌 核心优化理念：</h5>
-                                    <p>• <strong>难度正向激励：</strong>任务数量多的项目/人员获得难度加分，体现承担更大责任</p>
-                                    <p>• <strong>质量合理评估：</strong>基于实际逾期情况而非待办数量来评估质量</p>
-                                    <p>• <strong>力求公平公正：</strong>兼顾进度、效率、难度和质量的平衡，尽量做到公平公正</p>
+                                    <p>• <strong>时间维度评估：</strong>基于任务完成时间与计划时间的关系进行评分</p>
+                                    <p>• <strong>工作量激励：</strong>有任务的用户比无任务用户得分高，鼓励承担工作</p>
+                                    <p>• <strong>合理延期容忍：</strong>未到期任务不扣分，已逾期任务根据时长合理扣分</p>
+                                    <p>• <strong>提前完成奖励：</strong>提前完成任务获得额外加分，鼓励高效执行</p>
                                 </div>
                             </div>
                         </a-card>
@@ -695,23 +704,100 @@ const calculateUserDifficulty = (user: any) => {
     return Math.min(100, baseScore + pressureBonus)
 }
 
-// 用户质量计算 - 基于按时完成率和逾期情况
+// 用户质量计算 - 基于任务完成质量和时间表现
 const calculateUserQuality = (user: any) => {
     const totalTasks = user.pendingTasks + user.inProgressTasks + user.completedTasks
-    if (totalTasks === 0) return 85 // 无任务用户给予中等偏上质量分
+    if (totalTasks === 0) return 50 // 无任务用户给予中等质量分（降低分值避免不劳而获）
 
-    // 基础质量：完成任务的比例
-    const completionRatio = user.completedTasks / totalTasks
-    const baseQuality = completionRatio * 70 // 完成率最多贡献70分
+    // 获取该用户的所有待办任务详情
+    const userTodos = todoStore.todos.filter(todo => todo.assigneeId === user.id)
 
-    // 逾期惩罚：逾期任务会扣分
-    const overdueRatio = user.overdueTasks / totalTasks
-    const overduePenalty = overdueRatio * 30 // 逾期率最多扣30分
+    let totalScore = 0
+    let validTasks = 0
 
-    // 活跃度奖励：有一定任务量的用户给予奖励
-    const activityBonus = totalTasks >= 3 ? 30 : totalTasks * 10
+    // 为每个任务计算得分
+    for (const todo of userTodos) {
+        let taskScore = 0
 
-    return Math.max(0, Math.min(100, baseQuality + activityBonus - overduePenalty))
+        if (todo.status === 'DONE' && todo.completedTime) {
+            // 已完成任务的得分计算
+            if (todo.dueDate) {
+                const dueDate = new Date(todo.dueDate)
+                const completedDate = new Date(todo.completedTime)
+                const createDate = new Date(todo.createTime)
+
+                // 计算任务的总时长（创建到到期的天数）
+                const totalDays = Math.ceil((dueDate.getTime() - createDate.getTime()) / (1000 * 60 * 60 * 24))
+
+                // 计算完成时间与到期时间的差异
+                const daysDiff = Math.ceil((completedDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+
+                if (daysDiff <= 0) {
+                    // 提前完成或按时完成 - 基础分100分
+                    taskScore = 100
+
+                    // 提前完成加分：提前天数越多加分越多，但不超过总时长的一半
+                    if (daysDiff < 0) {
+                        const earlyDays = Math.abs(daysDiff)
+                        const maxEarlyBonus = Math.min(earlyDays * 10, totalDays * 5) // 每提前1天加10分，最多不超过总时长*5分
+                        taskScore += maxEarlyBonus
+                    }
+                } else {
+                    // 延期完成 - 根据延期时长扣分
+                    if (daysDiff >= totalDays) {
+                        // 延期天数≥总时长天数，得0分
+                        taskScore = 0
+                    } else {
+                        // 延期扣分：基础分100分 - 延期天数*扣分系数
+                        const penaltyRate = Math.min(daysDiff * 20, 80) // 每延期1天扣20分，最多扣80分
+                        taskScore = Math.max(20, 100 - penaltyRate) // 最低保底20分
+                    }
+                }
+            } else {
+                // 没有到期时间的已完成任务给予基础分
+                taskScore = 80
+            }
+        } else if (todo.status === 'PROGRESS' || todo.status === 'TODO') {
+            // 未完成任务的评分
+            if (todo.dueDate) {
+                const dueDate = new Date(todo.dueDate)
+                const now = new Date()
+                const daysDiff = Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+
+                if (daysDiff <= 0) {
+                    // 还没到期的任务不扣分，给予中性分
+                    taskScore = 60
+                } else {
+                    // 已逾期的未完成任务根据逾期天数扣分
+                    const createDate = new Date(todo.createTime)
+                    const totalDays = Math.ceil((dueDate.getTime() - createDate.getTime()) / (1000 * 60 * 60 * 24))
+
+                    if (daysDiff >= totalDays) {
+                        // 逾期天数≥总时长天数，得0分
+                        taskScore = 0
+                    } else {
+                        // 逾期扣分：基础分60分 - 逾期天数*扣分系数  
+                        const penaltyRate = Math.min(daysDiff * 15, 50) // 每逾期1天扣15分，最多扣50分
+                        taskScore = Math.max(10, 60 - penaltyRate) // 最低保底10分
+                    }
+                }
+            } else {
+                // 没有到期时间的未完成任务给予中性分
+                taskScore = 50
+            }
+        }
+
+        totalScore += Math.min(150, taskScore) // 单个任务最高得分不超过150分
+        validTasks++
+    }
+
+    // 计算平均分
+    const avgScore = validTasks > 0 ? totalScore / validTasks : 50
+
+    // 任务数量奖励：有任务的用户比没任务的用户得分高
+    const taskBonus = Math.min(totalTasks * 2, 15) // 每个任务奖励2分，最多15分
+
+    return Math.max(0, Math.min(100, avgScore + taskBonus))
 }
 
 // 刷新数据

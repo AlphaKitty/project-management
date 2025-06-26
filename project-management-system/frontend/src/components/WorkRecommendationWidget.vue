@@ -1,5 +1,5 @@
 <template>
-  <div class="work-recommendation-widget" :class="{ 'expanded': isExpanded }">
+  <div class="work-recommendation-widget" :class="[{ 'expanded': isExpanded }, `${themeStore.actualTheme}-theme`]">
     <!-- 浮动按钮 -->
     <div class="widget-trigger" @click="toggleExpanded" v-if="!isExpanded">
       <div class="trigger-content">
@@ -94,6 +94,7 @@ import { IconRefresh, IconClose } from '@arco-design/web-vue/es/icon'
 import { workRecommendationApi } from '@/api/workRecommendations'
 import type { WorkRecommendationSummary, WorkRecommendation } from '@/types'
 import { useRouter } from 'vue-router'
+import { useThemeStore } from '@/stores/theme'
 
 // 状态管理
 const isExpanded = ref(false)
@@ -108,8 +109,9 @@ const recommendations = ref<WorkRecommendationSummary>({
   totalCount: 0
 })
 
-// 路由
+// 路由和主题
 const router = useRouter()
+const themeStore = useThemeStore()
 
 // 计算属性
 const totalCount = computed(() => recommendations.value.totalCount)
@@ -204,18 +206,19 @@ onMounted(() => {
 }
 
 .widget-trigger {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-color);
   color: white;
   border-radius: 25px;
   padding: 12px 20px;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 20px var(--primary-color-light);
   transition: all 0.3s ease;
 }
 
 .widget-trigger:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+  background: var(--theme-primary-hover);
+  box-shadow: 0 6px 25px var(--primary-color-light);
 }
 
 .trigger-content {
@@ -234,9 +237,10 @@ onMounted(() => {
 }
 
 .widget-panel {
-  background: white;
+  background: var(--card-bg-color);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 40px var(--shadow-color);
   width: 380px;
   max-height: 70vh;
   overflow: hidden;
@@ -247,7 +251,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--primary-color);
   color: white;
 }
 
@@ -257,7 +261,7 @@ onMounted(() => {
 }
 
 .recommendation-section {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .section-header {
@@ -265,7 +269,8 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: #fafafa;
+  background: var(--theme-bg-secondary);
+  color: var(--text-color);
   font-weight: 600;
 }
 
@@ -273,12 +278,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--card-bg-color);
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .recommendation-item:hover {
-  background: #f8f9ff;
+  background: var(--hover-bg-color);
 }
 
 .recommendation-item.urgent {
@@ -297,21 +304,23 @@ onMounted(() => {
 .item-title {
   font-weight: 500;
   margin-bottom: 4px;
+  color: var(--text-color);
 }
 
 .item-description {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .empty-icon {
   font-size: 48px;
   margin-bottom: 12px;
+  color: var(--text-muted);
 }
 </style>

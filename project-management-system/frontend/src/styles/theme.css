@@ -39,6 +39,9 @@
   --border-hover-color: var(--theme-border-hover);
   --tag-bg-color: var(--theme-bg-secondary);
   --primary-color-light: var(--theme-primary-bg);
+  --hover-bg-color: var(--theme-bg-hover);
+  --shadow-color: var(--theme-shadow-medium);
+  --theme-primary-hover: var(--theme-primary-light);
 
   /* 功能色 */
   --theme-success: #00b42a;
@@ -91,6 +94,9 @@
   --border-hover-color: var(--theme-border-hover);
   --tag-bg-color: var(--theme-bg-secondary);
   --primary-color-light: var(--theme-primary-bg);
+  --hover-bg-color: var(--theme-bg-hover);
+  --shadow-color: var(--theme-shadow-medium);
+  --theme-primary-hover: var(--theme-primary-hover);
 
   /* 功能色在深色模式下的调整 */
   --theme-success: #23c343;
@@ -512,11 +518,89 @@
   color: var(--theme-text-primary) !important;
 }
 
-/* 标签组件 */
+/* 标签组件 - 保持原有颜色含义 */
 .dark-theme .arco-tag {
-  background-color: var(--theme-bg-secondary) !important;
   border-color: var(--theme-border-primary) !important;
+}
+
+/* 只覆盖默认标签的背景和文字颜色，保留有色彩含义的标签 */
+.dark-theme .arco-tag:not([class*="arco-tag-"]):not([class*="color-"]) {
+  background-color: var(--theme-bg-secondary) !important;
   color: var(--theme-text-primary) !important;
+}
+
+/* 保持状态标签的原有颜色含义 */
+.dark-theme .arco-tag-green {
+  background-color: rgba(35, 195, 67, 0.15) !important;
+  border-color: rgba(35, 195, 67, 0.4) !important;
+  color: #23c343 !important;
+}
+
+.dark-theme .arco-tag-blue {
+  background-color: rgba(64, 128, 255, 0.15) !important;
+  border-color: rgba(64, 128, 255, 0.4) !important;
+  color: #4080ff !important;
+}
+
+.dark-theme .arco-tag-orange {
+  background-color: rgba(255, 154, 46, 0.15) !important;
+  border-color: rgba(255, 154, 46, 0.4) !important;
+  color: #ff9a2e !important;
+}
+
+.dark-theme .arco-tag-red {
+  background-color: rgba(247, 105, 101, 0.15) !important;
+  border-color: rgba(247, 105, 101, 0.4) !important;
+  color: #f76965 !important;
+}
+
+.dark-theme .arco-tag-gray {
+  background-color: rgba(134, 144, 156, 0.15) !important;
+  border-color: rgba(134, 144, 156, 0.4) !important;
+  color: #86909c !important;
+}
+
+/* 添加其他常用的状态颜色标签 */
+.dark-theme .arco-tag[color="success"] {
+  background-color: rgba(35, 195, 67, 0.15) !important;
+  border-color: rgba(35, 195, 67, 0.4) !important;
+  color: #23c343 !important;
+}
+
+.dark-theme .arco-tag[color="warning"] {
+  background-color: rgba(255, 154, 46, 0.15) !important;
+  border-color: rgba(255, 154, 46, 0.4) !important;
+  color: #ff9a2e !important;
+}
+
+.dark-theme .arco-tag[color="danger"] {
+  background-color: rgba(247, 105, 101, 0.15) !important;
+  border-color: rgba(247, 105, 101, 0.4) !important;
+  color: #f76965 !important;
+}
+
+.dark-theme .arco-tag[color="processing"] {
+  background-color: rgba(64, 128, 255, 0.15) !important;
+  border-color: rgba(64, 128, 255, 0.4) !important;
+  color: #4080ff !important;
+}
+
+.dark-theme .arco-tag-yellow {
+  background-color: rgba(250, 173, 20, 0.15) !important;
+  border-color: rgba(250, 173, 20, 0.4) !important;
+  color: #faad14 !important;
+}
+
+.dark-theme .arco-tag-purple {
+  background-color: rgba(114, 46, 209, 0.15) !important;
+  border-color: rgba(114, 46, 209, 0.4) !important;
+  color: #722ed1 !important;
+}
+
+.dark-theme .arco-tag-cyan {
+  background-color: rgba(19, 194, 194, 0.15) !important;
+  border-color: rgba(19, 194, 194, 0.4) !important;
+  color: #13c2c2 !important;
 }
 
 /* 统计数字组件 */

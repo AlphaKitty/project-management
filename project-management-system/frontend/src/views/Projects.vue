@@ -135,6 +135,53 @@
       </a-form>
     </a-modal>
 
+    <!-- 新增待办模态框 -->
+    <a-modal v-model:visible="todoModalVisible" title="新增待办事项" @ok="handleTodoSubmit" @cancel="handleTodoCancel" width="600px">
+      <a-form :model="todoFormData" layout="vertical">
+        <a-form-item label="待办标题" required>
+          <a-input v-model="todoFormData.title" placeholder="请输入待办标题" />
+        </a-form-item>
+
+        <a-form-item label="待办描述">
+          <a-textarea v-model="todoFormData.description" placeholder="请输入待办描述" :rows="3" />
+        </a-form-item>
+
+        <a-form-item label="任务状态">
+          <a-select v-model="todoFormData.status" placeholder="请选择任务状态">
+            <a-option value="TODO">待办</a-option>
+            <a-option value="PROGRESS">进行中</a-option>
+            <a-option value="DONE">已完成</a-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="优先级">
+          <a-select v-model="todoFormData.priority" placeholder="请选择优先级">
+            <a-option value="LOW">低</a-option>
+            <a-option value="MEDIUM">中</a-option>
+            <a-option value="HIGH">高</a-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="截止日期">
+          <a-date-picker v-model="todoFormData.dueDate" style="width: 100%" />
+        </a-form-item>
+
+        <a-form-item label="责任人">
+          <a-select v-model="todoFormData.assigneeId" placeholder="请输入关键字搜索责任人" allow-search allow-clear
+            :filter-option="false" :loading="userStore.loading" @search="handleUserSearch">
+            <template #empty>
+              <div class="empty-projects">
+                {{ userSearchText
+                  ? (userSearchText.length < 2 ? '请输入至少2个字符进行搜索' : '无搜索结果') : '请输入关键字搜索用户' }} </div>
+            </template>
+            <a-option v-for="user in searchResultUsers" :key="user.id" :value="user.id">
+              <div class="user-option-inline">{{ user.username }}-{{ user.id }}-{{ user.nickname }}</div>
+            </a-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <!-- 项目概览模态框 -->
     <a-modal v-model:visible="overviewModalVisible" title="项目概览" width="1800px" :footer="false">
       <div class="overview-header">
@@ -213,7 +260,7 @@
             <div class="todos-display">
               <div v-for="todo in getUncompletedTodos(record)" :key="todo.id" class="todo-detail-item">
                 <div class="todo-header">
-                  <span class="todo-title">{{ todo.title }}</span>
+                  <div class="todo-title">{{ todo.title }}</div>
                 </div>
                 <div class="todo-info">
                   <span class="todo-assignee">责任人: {{ getTodoAssigneeName(todo) }}</span>
@@ -230,9 +277,37 @@
                     </span>
                   </div>
                 </div>
-
+                <div class="todo-note-section">
+                  <div v-if="!isEditingNote[todo.id]" class="todo-note-display">
+                    <span class="note-label">备注:</span>
+                    <span class="note-content">{{ todo.description || '无备注' }}</span>
+                    <a-button size="mini" type="text" @click="editTodoNote(todo)" class="edit-note-btn">
+                      <template #icon><icon-edit /></template>
+                    </a-button>
+                  </div>
+                  <div v-else class="todo-note-edit">
+                    <a-textarea 
+                      v-model="editingNoteContent" 
+                      placeholder="请输入备注内容..."
+                      :rows="2"
+                      :max-length="500"
+                      show-word-limit
+                      class="note-textarea"
+                    />
+                    <div class="note-edit-actions">
+                      <a-button size="mini" type="primary" @click="saveTodoNote(todo)" :loading="noteSaving">
+                        保存
+                      </a-button>
+                      <a-button size="mini" @click="cancelEditNote(todo.id)">
+                        取消
+                      </a-button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span v-if="getUncompletedTodos(record).length === 0" class="text-gray-400">正常进行中</span>
+              <div v-if="getUncompletedTodos(record).length === 0" class="no-todos-message">
+                <span class="text-gray-400">正常进行中</span>
+              </div>
             </div>
           </template>
 
@@ -242,6 +317,7 @@
 
           <template #actions="{ record }">
             <a-button size="small" @click="editProjectWithMilestones(record)">编辑</a-button>
+            <a-button size="small" type="primary" @click="showAddTodoModal(record)">新增待办</a-button>
           </template>
         </a-table>
       </div>
@@ -252,13 +328,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Message, Modal } from '@arco-design/web-vue'
-import { IconPlus, IconEye, IconDownload, IconRefresh } from '@arco-design/web-vue/es/icon'
+import { IconPlus, IconEye, IconDownload, IconRefresh, IconEdit } from '@arco-design/web-vue/es/icon'
 import * as XLSX from 'xlsx'
 import { useProjectStore } from '@/stores/projects'
 import { useUserStore } from '@/stores/user'
 import { useTodoStore } from '@/stores/todos'
 import { StatusLabels, StatusColors } from '@/types'
-import type { Project, ProjectDTO, User, Milestone } from '@/types'
+import type { Project, ProjectDTO, User, Milestone, TodoDTO } from '@/types'
 import dayjs from 'dayjs'
 
 // Store
@@ -269,8 +345,10 @@ const todoStore = useTodoStore()
 // 响应式数据
 const modalVisible = ref(false)
 const overviewModalVisible = ref(false)
+const todoModalVisible = ref(false)
 const isEdit = ref(false)
 const workUpdateLoading = ref(false)
+const currentProject = ref<Project | null>(null)
 const formData = ref<ProjectDTO>({
   name: '',
   description: '',
@@ -283,6 +361,23 @@ const formData = ref<ProjectDTO>({
 
 // 里程碑相关数据
 const currentMilestones = ref<Milestone[]>([])
+
+// 待办表单数据
+const todoFormData = ref<TodoDTO>({
+  title: '',
+  description: '',
+  status: 'PROGRESS',
+  priority: 'MEDIUM',
+  dueDate: '',
+  assigneeId: undefined,
+  projectId: undefined,
+  creatorId: userStore.currentUser?.id || 1
+})
+
+// 备注编辑相关数据
+const isEditingNote = ref<Record<number, boolean>>({})
+const editingNoteContent = ref('')
+const noteSaving = ref(false)
 
 // 用户搜索相关的响应式数据
 const userSearchText = ref('')
@@ -319,7 +414,7 @@ const overviewColumns = [
   { title: '下周计划', dataIndex: 'nextWeekPlan', key: 'nextWeekPlan', slotName: 'nextWeekPlan', width: 200, align: 'center' },
   { title: '待办事项', dataIndex: 'todos', key: 'todos', slotName: 'todos', width: 180, align: 'center' },
   { title: '创建人', dataIndex: 'creator', key: 'creator', slotName: 'creator', width: 80, align: 'center' },
-  { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 100, align: 'center' },
+  // { title: '创建时间', dataIndex: 'createTime', key: 'createTime', width: 100, align: 'center' },
   { title: '操作', key: 'actions', slotName: 'actions', width: 80, align: 'center' }
 ]
 
@@ -707,8 +802,6 @@ const updateWorkPlans = async () => {
   }
 }
 
-
-
 // 导出Excel功能
 const exportToExcel = async () => {
   try {
@@ -909,6 +1002,88 @@ const exportToExcel = async () => {
   } catch (error) {
     console.error('导出Excel失败:', error)
     Message.error('Excel导出失败')
+  }
+}
+
+// 显示新增待办模态框
+const showAddTodoModal = (project: Project) => {
+  currentProject.value = project
+  todoFormData.value = {
+    title: '',
+    description: '',
+    status: 'PROGRESS',
+    priority: 'MEDIUM',
+    dueDate: '',
+    assigneeId: undefined,
+    projectId: project.id,
+    creatorId: userStore.currentUser?.id || 1
+  }
+  
+  // 重置搜索状态
+  userSearchText.value = ''
+  searchResultUsers.value = []
+  
+  todoModalVisible.value = true
+}
+
+// 提交待办表单
+const handleTodoSubmit = async () => {
+  try {
+    await todoStore.createTodo(todoFormData.value)
+    Message.success('待办事项创建成功')
+    todoModalVisible.value = false
+    
+    // 如果项目概览模态框是打开的，重新加载数据
+    if (overviewModalVisible.value) {
+      await Promise.all([
+        projectStore.fetchProjectOverview(),
+        todoStore.fetchTodos()
+      ])
+    }
+  } catch (error) {
+    Message.error('待办事项创建失败')
+  }
+}
+
+// 取消待办操作
+const handleTodoCancel = () => {
+  todoModalVisible.value = false
+}
+
+// 备注编辑功能
+const editTodoNote = (todo: any) => {
+  isEditingNote.value[todo.id] = true
+  editingNoteContent.value = todo.description || ''
+}
+
+const cancelEditNote = (todoId: number) => {
+  isEditingNote.value[todoId] = false
+  editingNoteContent.value = ''
+}
+
+const saveTodoNote = async (todo: any) => {
+  try {
+    noteSaving.value = true
+    
+    // 调用API更新待办事项备注
+    await todoStore.updateTodo(todo.id, {
+      ...todo,
+      description: editingNoteContent.value
+    })
+    
+    // 更新本地数据
+    todo.description = editingNoteContent.value
+    
+    // 退出编辑模式
+    isEditingNote.value[todo.id] = false
+    editingNoteContent.value = ''
+    
+    Message.success('备注更新成功')
+  } catch (error) {
+    console.error('更新备注失败:', error)
+    Message.error('更新备注失败')
+  } finally {
+    noteSaving.value = false
   }
 }
 
@@ -1131,51 +1306,142 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.todo-detail-item {
+.todos-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.add-todo-btn {
+  font-size: 12px;
+  height: 24px;
+  padding: 0 8px;
+}
+
+.no-todos-message {
+  text-align: center;
   padding: 8px;
+  margin-top: 8px;
+}
+
+.todo-detail-item {
+  background: var(--card-bg-color);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--tag-bg-color);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  max-width: 350px; /* 限制最大宽度 */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .todo-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.todo-status-tag {
-  flex-shrink: 0;
+  justify-content: space-between;
+  margin-bottom: 8px;
 }
 
 .todo-title {
   font-weight: 500;
   color: var(--text-color);
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+  max-width: 100%;
+  text-wrap-mode: wrap;
+  width: 1000px;
 }
 
 .todo-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   font-size: 12px;
-  color: var(--text-muted);
+  margin-bottom: 8px;
 }
 
-.todo-assignee {
-  font-weight: 500;
-}
-
+.todo-assignee,
 .todo-dates {
   color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.todo-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 新增样式 */
+.edit-note-btn {
+  margin-left: 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  flex-shrink: 0; /* 防止按钮被压缩 */
+}
+
+.edit-note-btn:hover {
+  opacity: 1;
+}
+
+.todo-note-section {
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--theme-bg-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.todo-note-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.note-label {
+  font-weight: 500;
+  color: var(--text-color);
+  min-width: 40px;
+  flex-shrink: 0; /* 标签不压缩 */
+}
+
+.note-content {
+  color: var(--text-muted);
+  flex: 1;
+  word-wrap: break-word;
+  white-space: pre-wrap; /* 保持换行符 */
+  line-height: 1.4;
+  font-size: 12px;
+  text-align: left; /* 明确设置左对齐 */
+}
+
+.todo-note-edit {
+  width: 100%;
+}
+
+.note-textarea {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.note-edit-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 状态相关样式 */
+.todo-status-tag {
+  flex-shrink: 0;
 }
 
 .todo-remaining {
   font-weight: 500;
+  font-size: 11px;
 }
 
 .todo-overdue {
@@ -1190,6 +1456,7 @@ onUnmounted(() => {
   color: #00b42a;
 }
 
+/* 空状态样式 */
 .empty-projects {
   text-align: center;
   padding: 20px;
