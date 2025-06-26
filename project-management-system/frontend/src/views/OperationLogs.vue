@@ -599,6 +599,10 @@ onMounted(() => {
 
 .filter-section {
     margin-bottom: 20px;
+    background: var(--card-bg-color);
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
 }
 
 .stats-section {
@@ -606,9 +610,10 @@ onMounted(() => {
 }
 
 .table-section {
-    background: #fff;
+    background: var(--card-bg-color);
     border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
 }
 
 .detail-content {

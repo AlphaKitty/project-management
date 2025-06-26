@@ -32,7 +32,7 @@
                 <a-statistic title="总项目数" :value="statistics.totalProjects" :value-style="{ color: '#1890ff' }" />
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.projectTrend > 0 ? '+' : '' }}{{ statistics.projectTrend
-                        }}</span>
+                    }}</span>
                     <span class="trend-label">{{ timeRangeText }}新增</span>
                 </div>
             </a-card>
@@ -42,7 +42,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.userActiveTrend > 0 ? '+' : '' }}{{
                         statistics.userActiveTrend
-                        }}</span>
+                    }}</span>
                     <span class="trend-label">{{ timeRangeText }}操作</span>
                 </div>
             </a-card>
@@ -61,7 +61,7 @@
                 <div class="trend-info">
                     <span class="trend-value">{{ statistics.completionTrend > 0 ? '+' : '' }}{{
                         statistics.completionTrend
-                        }}%</span>
+                    }}%</span>
                     <span class="trend-label">较上期</span>
                 </div>
             </a-card>
@@ -1176,7 +1176,7 @@ onUnmounted(() => {
 <style scoped>
 .data-dashboard {
     padding: 20px;
-    background: #f5f5f5;
+    background: var(--bg-color);
     min-height: 100vh;
 }
 
@@ -1185,9 +1185,10 @@ onUnmounted(() => {
 }
 
 .config-card {
-    background: white;
+    background: var(--card-bg-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
 }
 
 .overview-cards {
@@ -1198,9 +1199,10 @@ onUnmounted(() => {
 }
 
 .overview-card {
-    background: white;
+    background: var(--card-bg-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
 }
 
 .trend-info {
@@ -1208,7 +1210,7 @@ onUnmounted(() => {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .trend-value {
@@ -1216,9 +1218,10 @@ onUnmounted(() => {
 }
 
 .analysis-tabs {
-    background: white;
+    background: var(--card-bg-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
     padding: 20px;
 }
 
@@ -1238,9 +1241,10 @@ onUnmounted(() => {
 }
 
 .chart-card {
-    background: white;
+    background: var(--card-bg-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
 }
 
 .chart-container {
@@ -1249,9 +1253,10 @@ onUnmounted(() => {
 }
 
 .data-table-card {
-    background: white;
+    background: var(--card-bg-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
 }
 
 .task-stats {
@@ -1262,7 +1267,7 @@ onUnmounted(() => {
 
 .stat-item {
     font-size: 12px;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .user-info {
@@ -1274,6 +1279,7 @@ onUnmounted(() => {
 
 .user-name {
     font-weight: 500;
+    color: var(--text-color);
 }
 
 .efficiency-score .score {
@@ -1299,14 +1305,15 @@ onUnmounted(() => {
 }
 
 .rule-card {
-    background: white;
+    background: var(--card-bg-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--card-shadow);
+    border: 1px solid var(--border-color);
     margin-bottom: 20px;
 }
 
 .rule-content h4 {
-    color: #1890ff;
+    color: var(--primary-color);
     margin-bottom: 10px;
 }
 
@@ -1317,6 +1324,7 @@ onUnmounted(() => {
 
 .rule-content li {
     margin-bottom: 5px;
+    color: var(--text-color);
 }
 
 .rank-badge {
@@ -1334,32 +1342,33 @@ onUnmounted(() => {
 .score-value {
     font-size: 16px;
     font-weight: bold;
-    color: #1890ff;
+    color: var(--primary-color);
 }
 
 .score-breakdown {
     margin-top: 4px;
-    color: #666;
+    color: var(--text-muted);
     font-size: 11px;
 }
 
 .rule-note {
     margin-top: 20px;
     padding: 15px;
-    background: #f8f9fa;
-    border-left: 4px solid #1890ff;
+    background: var(--card-bg-color);
+    border-left: 4px solid var(--primary-color);
     border-radius: 4px;
+    border: 1px solid var(--border-color);
 }
 
 .rule-note h5 {
-    color: #1890ff;
+    color: var(--primary-color);
     margin-bottom: 8px;
     font-size: 14px;
 }
 
 .rule-note p {
     margin-bottom: 5px;
-    color: #666;
+    color: var(--text-muted);
     font-size: 13px;
     line-height: 1.5;
 }
@@ -1372,50 +1381,5 @@ onUnmounted(() => {
     .overview-cards {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     }
-}
-
-.rule-card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    margin-bottom: 20px;
-}
-
-.rule-content h4 {
-    color: #1890ff;
-    margin-bottom: 10px;
-}
-
-.rule-content ul {
-    margin-left: 20px;
-    margin-bottom: 15px;
-}
-
-.rule-content li {
-    margin-bottom: 5px;
-}
-
-.rank-badge {
-    display: flex;
-    align-items: center;
-}
-
-.score-display {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.score-value {
-    font-size: 16px;
-    font-weight: bold;
-    color: #1890ff;
-}
-
-.score-breakdown {
-    margin-top: 4px;
-    color: #666;
-    font-size: 11px;
 }
 </style>

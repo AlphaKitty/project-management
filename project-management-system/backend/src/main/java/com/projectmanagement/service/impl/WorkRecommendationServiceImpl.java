@@ -157,44 +157,70 @@ public class WorkRecommendationServiceImpl implements WorkRecommendationService 
         LocalDateTime now = LocalDateTime.now();
 
         for (Project project : projects) {
-            // 过滤出属于当前项目的待办任务
-            List<Todo> projectTodos = todos.stream()
-                    .filter(todo -> project.getId().equals(todo.getProjectId()))
-                    .collect(Collectors.toList());
+            List<Todo> projectTodos = getProjectTodos(todos, project.getId());
 
-            // 检查项目停滞条件
-            boolean isActive = "PROGRESS".equals(project.getStatus());
-            boolean isIncomplete = project.getProgress() < 100;
-            boolean hasNoActiveTodos = projectTodos.stream()
-                    .noneMatch(todo -> "TODO".equals(todo.getStatus()) || "PROGRESS".equals(todo.getStatus()));
-
-            if (isActive && isIncomplete && hasNoActiveTodos) {
-                // 查找最后完成的待办时间
-                LocalDateTime lastCompletedTime = projectTodos.stream()
-                        .filter(todo -> "DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null)
-                        .map(Todo::getCompletedTime)
-                        .max(LocalDateTime::compareTo)
-                        .orElse(project.getCreateTime());
-
-                long daysSinceLastActivity = ChronoUnit.DAYS.between(lastCompletedTime, now);
+            if (isProjectStagnant(project, projectTodos)) {
+                long daysSinceLastActivity = calculateDaysSinceLastActivity(project, projectTodos, now);
 
                 if (daysSinceLastActivity >= 3) {
-                    WorkRecommendationDTO.RecommendationItem item = new WorkRecommendationDTO.RecommendationItem();
-                    item.setId(UUID.randomUUID().toString());
-                    item.setType("STAGNANT");
-                    item.setTitle(project.getName() + " - 项目停滞");
-                    item.setDescription(String.format("项目已 %d 天无新待办，进度 %d%%，建议创建下一步计划",
-                            daysSinceLastActivity, project.getProgress()));
-                    item.setProjectId(project.getId());
-                    item.setPriority("MEDIUM");
-                    item.setActionType("VIEW_PROJECT"); // 项目停滞应该查看项目详情
-                    item.setCreateTime(LocalDateTime.now());
-                    stagnant.add(item);
+                    stagnant.add(createStagnantRecommendation(project, daysSinceLastActivity));
                 }
             }
         }
 
         return stagnant;
+    }
+
+    /**
+     * 获取指定项目的待办任务
+     */
+    private List<Todo> getProjectTodos(List<Todo> allTodos, Long projectId) {
+        return allTodos.stream()
+                .filter(todo -> projectId.equals(todo.getProjectId()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 判断项目是否停滞
+     */
+    private boolean isProjectStagnant(Project project, List<Todo> projectTodos) {
+        boolean isActive = "PROGRESS".equals(project.getStatus());
+        boolean isIncomplete = project.getProgress() < 100;
+        boolean hasNoActiveTodos = projectTodos.stream()
+                .noneMatch(todo -> "TODO".equals(todo.getStatus()) || "PROGRESS".equals(todo.getStatus()));
+
+        return isActive && isIncomplete && hasNoActiveTodos;
+    }
+
+    /**
+     * 计算距离最后活动的天数
+     */
+    private long calculateDaysSinceLastActivity(Project project, List<Todo> projectTodos, LocalDateTime now) {
+        LocalDateTime lastCompletedTime = projectTodos.stream()
+                .filter(todo -> "DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null)
+                .map(Todo::getCompletedTime)
+                .max(LocalDateTime::compareTo)
+                .orElse(project.getCreateTime());
+
+        return ChronoUnit.DAYS.between(lastCompletedTime, now);
+    }
+
+    /**
+     * 创建停滞项目推荐项
+     */
+    private WorkRecommendationDTO.RecommendationItem createStagnantRecommendation(Project project,
+            long daysSinceLastActivity) {
+        WorkRecommendationDTO.RecommendationItem item = new WorkRecommendationDTO.RecommendationItem();
+        item.setId(UUID.randomUUID().toString());
+        item.setType("STAGNANT");
+        item.setTitle(project.getName() + " - 项目停滞");
+        item.setDescription(String.format("项目已 %d 天无新待办，进度 %d%%，建议创建下一步计划",
+                daysSinceLastActivity, project.getProgress()));
+        item.setProjectId(project.getId());
+        item.setPriority("MEDIUM");
+        item.setActionType("VIEW_PROJECT");
+        item.setCreateTime(LocalDateTime.now());
+        return item;
     }
 
     /**

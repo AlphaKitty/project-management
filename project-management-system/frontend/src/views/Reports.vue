@@ -397,9 +397,9 @@ onUnmounted(() => {
 .filter-section {
   margin-bottom: 16px;
   padding: 16px;
-  background: #fff;
+  background: var(--card-bg-color);
   border-radius: 6px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-color);
 }
 
 .report-list-card {

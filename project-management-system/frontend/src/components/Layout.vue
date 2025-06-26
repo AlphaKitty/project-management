@@ -1,5 +1,5 @@
 <template>
-  <div class="layout-container">
+  <div class="layout-container page-container">
     <a-layout class="layout-basic">
       <a-layout-sider :width="240" class="layout-sider">
         <div class="logo">
@@ -64,6 +64,9 @@
                 {{ createButtonText }}
               </a-button>
 
+              <!-- 主题切换按钮 -->
+              <theme-toggle mode="dropdown" />
+
               <!-- 用户信息和登出 -->
               <a-dropdown>
                 <a-avatar>
@@ -115,6 +118,7 @@ import {
   IconHistory
 } from '@arco-design/web-vue/es/icon'
 import { useUserStore } from '../stores/user'
+import ThemeToggle from './ThemeToggle.vue'
 
 // 路由实例
 const router = useRouter()

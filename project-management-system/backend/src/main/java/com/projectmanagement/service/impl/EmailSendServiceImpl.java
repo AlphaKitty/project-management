@@ -6,8 +6,8 @@ import com.google.gson.reflect.TypeToken;
 import com.projectmanagement.entity.*;
 import com.projectmanagement.mapper.*;
 import com.projectmanagement.service.EmailSendService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -34,39 +34,21 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class EmailSendServiceImpl implements EmailSendService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
+    private final EmailSendQueueMapper emailSendQueueMapper;
+    private final EmailSendRuleMapper emailSendRuleMapper;
+    private final EmailTemplateMapper emailTemplateMapper;
+    private final UserEmailPreferenceMapper userEmailPreferenceMapper;
+    private final UserMapper userMapper;
+    private final ProjectMapper projectMapper;
+    private final TodoMapper todoMapper;
+    private final EmailRuleProcessor ruleProcessor;
 
     private final Gson gson = new Gson();
-
-    @Autowired
-    private TemplateEngine templateEngine;
-
-    @Autowired
-    private EmailSendQueueMapper emailSendQueueMapper;
-
-    @Autowired
-    private EmailSendRuleMapper emailSendRuleMapper;
-
-    @Autowired
-    private EmailTemplateMapper emailTemplateMapper;
-
-    @Autowired
-    private UserEmailPreferenceMapper userEmailPreferenceMapper;
-
-    @Autowired
-    private UserMapper userMapper;
-
-    @Autowired
-    private ProjectMapper projectMapper;
-
-    @Autowired
-    private TodoMapper todoMapper;
-
-    @Autowired
-    private EmailRuleProcessor ruleProcessor;
 
     @Value("${spring.mail.username:noreply@projectmanagement.com}")
     private String fromEmail;
@@ -161,7 +143,15 @@ public class EmailSendServiceImpl implements EmailSendService {
         Map<String, Object> variables = new HashMap<>();
         variables.put("assigneeName", assignee.getNickname() != null ? assignee.getNickname() : assignee.getUsername());
         variables.put("taskTitle", todo.getTitle());
-        variables.put("description", todo.getDescription());
+        // 处理描述字段的换行符，转换为HTML格式
+        String description = todo.getDescription();
+        if (description != null && !description.trim().isEmpty()) {
+            // 将换行符转换为HTML的<br>标签
+            description = description.replace("\n", "<br/>").replace("\r\n", "<br/>");
+            variables.put("description", description);
+        } else {
+            variables.put("description", "暂无描述");
+        }
         variables.put("priority", getPriorityText(todo.getPriority()));
         variables.put("dueDate", todo.getDueDate() != null ? todo.getDueDate().toString() : "未设置");
         variables.put("assignedBy", creator.getNickname() != null ? creator.getNickname() : creator.getUsername());

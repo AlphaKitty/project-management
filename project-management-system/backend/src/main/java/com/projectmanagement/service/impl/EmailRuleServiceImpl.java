@@ -13,8 +13,8 @@ import com.projectmanagement.mapper.UserEmailPreferenceMapper;
 import com.projectmanagement.service.EmailRuleService;
 import com.projectmanagement.service.EmailSendService;
 import com.projectmanagement.service.impl.EmailRuleProcessor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -26,22 +26,14 @@ import java.util.stream.Collectors;
  * 邮件规则管理Service实现类
  */
 @Service
+@RequiredArgsConstructor
 public class EmailRuleServiceImpl implements EmailRuleService {
 
-    @Autowired
-    private EmailSendRuleMapper emailSendRuleMapper;
-
-    @Autowired
-    private UserEmailPreferenceMapper userEmailPreferenceMapper;
-
-    @Autowired
-    private EmailTemplateMapper emailTemplateMapper;
-
-    @Autowired
-    private EmailRuleProcessor emailRuleProcessor;
-
-    @Autowired
-    private EmailSendService emailSendService;
+    private final EmailSendRuleMapper emailSendRuleMapper;
+    private final UserEmailPreferenceMapper userEmailPreferenceMapper;
+    private final EmailTemplateMapper emailTemplateMapper;
+    private final EmailRuleProcessor emailRuleProcessor;
+    private final EmailSendService emailSendService;
 
     @Override
     public Page<EmailSendRule> getEmailRules(int current, int size, String ruleType, Boolean enabled) {

@@ -477,16 +477,16 @@ onMounted(async () => {
 .todo-item {
   padding: 16px;
   margin-bottom: 12px;
-  background: #fafafa;
+  background: var(--card-bg-color);
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-color);
   transition: all 0.2s ease;
 }
 
 .todo-item:hover {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: var(--card-hover-bg);
+  border-color: var(--border-hover-color);
+  box-shadow: var(--card-shadow);
 }
 
 .todo-item:last-child {
@@ -507,7 +507,7 @@ onMounted(async () => {
 
 .todo-title {
   font-weight: 1000;
-  color: #333;
+  color: var(--text-color);
   flex: 1;
 }
 
@@ -536,8 +536,16 @@ onMounted(async () => {
 
 .todo-description {
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
   line-height: 1.4;
+  white-space: pre-line;
+  word-wrap: break-word;
+  max-height: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .todo-meta {
@@ -548,8 +556,8 @@ onMounted(async () => {
 
 .todo-due-date {
   font-size: 12px;
-  color: #666;
-  background: #f5f5f5;
+  color: var(--text-muted);
+  background: var(--tag-bg-color);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -563,7 +571,7 @@ onMounted(async () => {
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .empty-state p {
@@ -572,7 +580,7 @@ onMounted(async () => {
 }
 
 .todo-assignee {
-  color: #888;
+  color: var(--text-muted);
   font-size: 12px;
   margin-top: 2px;
 }

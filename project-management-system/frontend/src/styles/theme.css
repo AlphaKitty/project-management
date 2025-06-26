@@ -1,0 +1,775 @@
+/* 基础主题变量 */
+:root {
+  /* 浅色主题 */
+  --theme-bg-primary: #ffffff;
+  --theme-bg-secondary: #f7f8fa;
+  --theme-bg-tertiary: #f2f3f5;
+  --theme-bg-hover: #f7f8fa;
+  --theme-bg-active: #e5e6eb;
+
+  --theme-text-primary: #1d2129;
+  --theme-text-secondary: #4e5969;
+  --theme-text-tertiary: #86909c;
+  --theme-text-disabled: #c9cdd4;
+
+  --theme-border-primary: #e5e6eb;
+  --theme-border-secondary: #f2f3f5;
+  --theme-border-hover: #c9cdd4;
+
+  --theme-shadow-light: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --theme-shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --theme-shadow-heavy: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* 品牌色 */
+  --theme-primary: #165dff;
+  --theme-primary-light: #4080ff;
+  --theme-primary-dark: #0e42d2;
+  --theme-primary-hover: #4080ff;
+  --theme-primary-bg: #f2f5ff;
+
+  /* 别名变量 - 为了兼容组件中使用的变量名 */
+  --bg-color: var(--theme-bg-primary);
+  --card-bg-color: var(--theme-bg-primary);
+  --card-shadow: var(--theme-shadow-light);
+  --border-color: var(--theme-border-primary);
+  --text-color: var(--theme-text-primary);
+  --text-muted: var(--theme-text-tertiary);
+  --primary-color: var(--theme-primary);
+  --card-hover-bg: var(--theme-bg-hover);
+  --border-hover-color: var(--theme-border-hover);
+  --tag-bg-color: var(--theme-bg-secondary);
+  --primary-color-light: var(--theme-primary-bg);
+
+  /* 功能色 */
+  --theme-success: #00b42a;
+  --theme-success-bg: #e8f5e8;
+  --theme-warning: #ff7d00;
+  --theme-warning-bg: #fff3e8;
+  --theme-danger: #f53f3f;
+  --theme-danger-bg: #ffece8;
+  --theme-info: #165dff;
+  --theme-info-bg: #e8f3ff;
+}
+
+/* 深色主题 */
+.dark-theme {
+  --theme-bg-primary: #17171a;
+  --theme-bg-secondary: #232324;
+  --theme-bg-tertiary: #2a2a2b;
+  --theme-bg-hover: #313132;
+  --theme-bg-active: #373739;
+
+  --theme-text-primary: #f7f8fa;
+  --theme-text-secondary: #c9cdd4;
+  --theme-text-tertiary: #86909c;
+  --theme-text-disabled: #4e5969;
+
+  --theme-border-primary: #373739;
+  --theme-border-secondary: #2a2a2b;
+  --theme-border-hover: #4e5969;
+
+  --theme-shadow-light: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --theme-shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --theme-shadow-heavy: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  /* 品牌色在深色模式下的调整 */
+  --theme-primary: #4080ff;
+  --theme-primary-light: #70a6ff;
+  --theme-primary-dark: #165dff;
+  --theme-primary-hover: #70a6ff;
+  --theme-primary-bg: #1a2332;
+
+  /* 别名变量 - 深色主题 */
+  --bg-color: var(--theme-bg-primary);
+  --card-bg-color: var(--theme-bg-primary);
+  --card-shadow: var(--theme-shadow-light);
+  --border-color: var(--theme-border-primary);
+  --text-color: var(--theme-text-primary);
+  --text-muted: var(--theme-text-tertiary);
+  --primary-color: var(--theme-primary);
+  --card-hover-bg: var(--theme-bg-hover);
+  --border-hover-color: var(--theme-border-hover);
+  --tag-bg-color: var(--theme-bg-secondary);
+  --primary-color-light: var(--theme-primary-bg);
+
+  /* 功能色在深色模式下的调整 */
+  --theme-success: #23c343;
+  --theme-success-bg: #1a2e1a;
+  --theme-warning: #ff9a2e;
+  --theme-warning-bg: #2e1e0f;
+  --theme-danger: #f76965;
+  --theme-danger-bg: #2e1818;
+  --theme-info: #4080ff;
+  --theme-info-bg: #1a2332;
+}
+
+/* 主题过渡动画 */
+* {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease !important;
+}
+
+/* 全局样式覆盖 */
+.light-theme,
+.dark-theme {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-primary);
+}
+
+/* 自定义滚动条 */
+.light-theme ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.light-theme ::-webkit-scrollbar-track {
+  background: var(--theme-bg-secondary);
+  border-radius: 3px;
+}
+
+.light-theme ::-webkit-scrollbar-thumb {
+  background: var(--theme-border-hover);
+  border-radius: 3px;
+}
+
+.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text-tertiary);
+}
+
+.dark-theme ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+  background: var(--theme-bg-secondary);
+  border-radius: 3px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--theme-border-hover);
+  border-radius: 3px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text-tertiary);
+}
+
+/* 页面布局样式 */
+.page-container {
+  background-color: var(--theme-bg-primary);
+  min-height: 100vh;
+}
+
+.content-card {
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-primary);
+  box-shadow: var(--theme-shadow-light);
+}
+
+.content-card:hover {
+  border-color: var(--theme-border-hover);
+  box-shadow: var(--theme-shadow-medium);
+}
+
+/* 表格样式增强 */
+.theme-table {
+  background-color: var(--theme-bg-primary);
+}
+
+.theme-table .arco-table-th {
+  background-color: var(--theme-bg-secondary);
+  border-bottom: 1px solid var(--theme-border-primary);
+  color: var(--theme-text-primary);
+}
+
+.theme-table .arco-table-td {
+  border-bottom: 1px solid var(--theme-border-secondary);
+  color: var(--theme-text-primary);
+}
+
+.theme-table .arco-table-tr:hover .arco-table-td {
+  background-color: var(--theme-bg-hover);
+}
+
+/* 模态框样式增强 */
+.theme-modal .arco-modal {
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-primary);
+}
+
+.theme-modal .arco-modal-header {
+  border-bottom: 1px solid var(--theme-border-primary);
+  background-color: var(--theme-bg-secondary);
+}
+
+.theme-modal .arco-modal-footer {
+  border-top: 1px solid var(--theme-border-primary);
+  background-color: var(--theme-bg-secondary);
+}
+
+/* 卡片样式增强 */
+.theme-card {
+  background-color: var(--theme-bg-primary);
+  border: 1px solid var(--theme-border-primary);
+  box-shadow: var(--theme-shadow-light);
+}
+
+.theme-card:hover {
+  box-shadow: var(--theme-shadow-medium);
+  border-color: var(--theme-border-hover);
+}
+
+/* 表单样式增强 */
+.theme-form .arco-input,
+.theme-form .arco-textarea,
+.theme-form .arco-select-view,
+.theme-form .arco-picker {
+  background-color: var(--theme-bg-primary);
+  border-color: var(--theme-border-primary);
+  color: var(--theme-text-primary);
+}
+
+.theme-form .arco-input:hover,
+.theme-form .arco-textarea:hover,
+.theme-form .arco-select-view:hover,
+.theme-form .arco-picker:hover {
+  border-color: var(--theme-border-hover);
+}
+
+.theme-form .arco-input:focus,
+.theme-form .arco-textarea:focus,
+.theme-form .arco-select-view-focus,
+.theme-form .arco-picker-focused {
+  border-color: var(--theme-primary);
+  box-shadow: 0 0 0 2px var(--theme-primary-bg);
+}
+
+/* 主题切换动画效果 */
+@keyframes theme-switch {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.theme-switching {
+  animation: theme-switch 0.5s ease-in-out;
+}
+
+/* ============ Arco Design 组件完整主题适配 ============ */
+
+/* 布局组件 */
+.dark-theme .arco-layout {
+  background-color: var(--theme-bg-primary) !important;
+}
+
+.dark-theme .arco-layout-sider {
+  background-color: var(--theme-bg-secondary) !important;
+}
+
+.dark-theme .arco-layout-header {
+  background-color: var(--theme-bg-primary) !important;
+  border-bottom: 1px solid var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-layout-content {
+  background-color: var(--theme-bg-primary) !important;
+}
+
+/* 卡片组件 */
+.dark-theme .arco-card {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-card-header {
+  background-color: var(--theme-bg-secondary) !important;
+  border-bottom-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-card-body {
+  background-color: var(--theme-bg-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-card-hoverable:hover {
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+/* 菜单组件 */
+.dark-theme .arco-menu {
+  background-color: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-menu-item {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark-theme .arco-menu-item:hover {
+  background-color: var(--theme-bg-hover) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-menu-item-selected {
+  background-color: var(--theme-primary-bg) !important;
+  color: var(--theme-primary) !important;
+}
+
+/* 表格组件 */
+.dark-theme .arco-table {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-table-th {
+  background-color: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-table-td {
+  border-color: var(--theme-border-secondary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-table-tr:hover .arco-table-td {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+.dark-theme .arco-table-stripe .arco-table-tr-stripe .arco-table-td {
+  background-color: var(--theme-bg-tertiary) !important;
+}
+
+/* 分页组件 */
+.dark-theme .arco-pagination {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-pagination-item {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-pagination-item:hover {
+  background-color: var(--theme-bg-hover) !important;
+  border-color: var(--theme-border-hover) !important;
+}
+
+.dark-theme .arco-pagination-item-active {
+  background-color: var(--theme-primary) !important;
+  border-color: var(--theme-primary) !important;
+  color: #ffffff !important;
+}
+
+/* 表单组件 */
+.dark-theme .arco-input {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-input:hover {
+  border-color: var(--theme-border-hover) !important;
+}
+
+.dark-theme .arco-input:focus {
+  border-color: var(--theme-primary) !important;
+  box-shadow: 0 0 0 2px var(--theme-primary-bg) !important;
+}
+
+.dark-theme .arco-textarea {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-select-view {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-select-dropdown {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+.dark-theme .arco-select-option {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-select-option:hover {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+.dark-theme .arco-select-option-selected {
+  background-color: var(--theme-primary-bg) !important;
+  color: var(--theme-primary) !important;
+}
+
+/* 按钮组件 */
+.dark-theme .arco-btn {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-btn-secondary {
+  background-color: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-btn-secondary:hover {
+  background-color: var(--theme-bg-hover) !important;
+  border-color: var(--theme-border-hover) !important;
+}
+
+.dark-theme .arco-btn-outline {
+  background-color: transparent !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-btn-outline:hover {
+  background-color: var(--theme-bg-hover) !important;
+  border-color: var(--theme-border-hover) !important;
+}
+
+.dark-theme .arco-btn-text {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-btn-text:hover {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+/* 模态框组件 */
+.dark-theme .arco-modal {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-modal-header {
+  background-color: var(--theme-bg-secondary) !important;
+  border-bottom-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-modal-body {
+  background-color: var(--theme-bg-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-modal-footer {
+  background-color: var(--theme-bg-secondary) !important;
+  border-top-color: var(--theme-border-primary) !important;
+}
+
+/* 下拉菜单组件 */
+.dark-theme .arco-dropdown {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+.dark-theme .arco-dropdown-option {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-dropdown-option:hover {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+/* 提示组件 */
+.dark-theme .arco-tooltip {
+  background-color: var(--theme-bg-tertiary) !important;
+  color: var(--theme-text-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-popover {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+.dark-theme .arco-popover-content {
+  color: var(--theme-text-primary) !important;
+}
+
+/* 标签组件 */
+.dark-theme .arco-tag {
+  background-color: var(--theme-bg-secondary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* 统计数字组件 */
+.dark-theme .arco-statistic {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-statistic-title {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark-theme .arco-statistic-value {
+  color: var(--theme-text-primary) !important;
+}
+
+/* 描述列表组件 */
+.dark-theme .arco-descriptions {
+  background-color: var(--theme-bg-primary) !important;
+}
+
+.dark-theme .arco-descriptions-item-label {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark-theme .arco-descriptions-item-value {
+  color: var(--theme-text-primary) !important;
+}
+
+/* 空状态组件 */
+.dark-theme .arco-empty {
+  color: var(--theme-text-tertiary) !important;
+}
+
+.dark-theme .arco-empty-description {
+  color: var(--theme-text-tertiary) !important;
+}
+
+/* 分割线组件 */
+.dark-theme .arco-divider {
+  border-color: var(--theme-border-primary) !important;
+}
+
+/* 面包屑组件 */
+.dark-theme .arco-breadcrumb-item {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark-theme .arco-breadcrumb-item-link {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark-theme .arco-breadcrumb-item-link:hover {
+  color: var(--theme-primary) !important;
+}
+
+/* 步骤条组件 */
+.dark-theme .arco-steps-item-title {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-steps-item-description {
+  color: var(--theme-text-secondary) !important;
+}
+
+/* 进度条组件 */
+.dark-theme .arco-progress-text {
+  color: var(--theme-text-primary) !important;
+}
+
+/* 头像组件 */
+.dark-theme .arco-avatar {
+  background-color: var(--theme-bg-secondary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* 徽标数组件 */
+.dark-theme .arco-badge-text {
+  background-color: var(--theme-danger) !important;
+  color: #ffffff !important;
+}
+
+/* 抽屉组件 */
+.dark-theme .arco-drawer {
+  background-color: var(--theme-bg-primary) !important;
+}
+
+.dark-theme .arco-drawer-header {
+  background-color: var(--theme-bg-secondary) !important;
+  border-bottom-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-drawer-body {
+  background-color: var(--theme-bg-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+/* 消息提示组件 */
+.dark-theme .arco-message {
+  background-color: var(--theme-bg-primary) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+.dark-theme .arco-notification {
+  background-color: var(--theme-bg-primary) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+/* 时间选择器组件 */
+.dark-theme .arco-picker {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-picker-dropdown {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+/* 日历组件 */
+.dark-theme .arco-calendar {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-calendar-header {
+  background-color: var(--theme-bg-secondary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-calendar-cell {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-calendar-cell:hover {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+/* 树形控件组件 */
+.dark-theme .arco-tree {
+  background-color: var(--theme-bg-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-tree-node {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-tree-node:hover {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+.dark-theme .arco-tree-node-selected {
+  background-color: var(--theme-primary-bg) !important;
+  color: var(--theme-primary) !important;
+}
+
+/* 穿梭框组件 */
+.dark-theme .arco-transfer {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .arco-transfer-header {
+  background-color: var(--theme-bg-secondary) !important;
+  border-bottom-color: var(--theme-border-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-transfer-body {
+  background-color: var(--theme-bg-primary) !important;
+}
+
+.dark-theme .arco-transfer-item {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .arco-transfer-item:hover {
+  background-color: var(--theme-bg-hover) !important;
+}
+
+/* 锚点组件 */
+.dark-theme .arco-anchor {
+  background-color: var(--theme-bg-primary) !important;
+}
+
+.dark-theme .arco-anchor-link {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark-theme .arco-anchor-link-active {
+  color: var(--theme-primary) !important;
+}
+
+/* 回到顶部组件 */
+.dark-theme .arco-back-top {
+  background-color: var(--theme-bg-secondary) !important;
+  color: var(--theme-text-primary) !important;
+  box-shadow: var(--theme-shadow-medium) !important;
+}
+
+/* 图表容器和数据看板特殊样式 */
+.dark-theme .chart-container {
+  background-color: var(--theme-bg-primary) !important;
+}
+
+.dark-theme .dashboard-card {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .dashboard-card .arco-card-header {
+  background-color: var(--theme-bg-primary) !important;
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .dashboard-metric-card {
+  background-color: var(--theme-bg-primary) !important;
+  border-color: var(--theme-border-primary) !important;
+}
+
+.dark-theme .metric-value {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme .metric-label {
+  color: var(--theme-text-secondary) !important;
+}
+
+/* 全局文本颜色修复 */
+.dark-theme h1,
+.dark-theme h2,
+.dark-theme h3,
+.dark-theme h4,
+.dark-theme h5,
+.dark-theme h6 {
+  color: var(--theme-text-primary) !important;
+}
+
+.dark-theme p,
+.dark-theme span,
+.dark-theme div {
+  color: var(--theme-text-primary);
+}
+
+.dark-theme .text-secondary {
+  color: var(--theme-text-secondary) !important;
+}
+
+.dark-theme .text-tertiary {
+  color: var(--theme-text-tertiary) !important;
+}

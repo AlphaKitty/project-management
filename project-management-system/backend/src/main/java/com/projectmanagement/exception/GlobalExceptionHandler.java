@@ -28,21 +28,22 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     /**
+     * 根据请求路径创建统一的响应格式
+     */
+    private Object createResponse(String message, int code, HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        return requestURI.startsWith("/auth")
+                ? ApiResponse.error(code, message)
+                : Result.error(code, message);
+    }
+
+    /**
      * 处理业务异常
      */
     @ExceptionHandler(BusinessException.class)
     public Object handleBusinessException(BusinessException e, HttpServletRequest request) {
         log.warn("Business exception occurred: {} - URL: {}", e.getMessage(), request.getRequestURL());
-
-        // 根据请求路径判断返回格式
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            // 认证相关接口使用ApiResponse
-            return ApiResponse.error(e.getCode() == 404 ? 1 : e.getCode(), e.getMessage());
-        } else {
-            // 其他接口使用Result
-            return Result.error(e.getCode(), e.getMessage());
-        }
+        return createResponse(e.getMessage(), e.getCode() == 404 ? 1 : e.getCode(), request);
     }
 
     /**
@@ -52,13 +53,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Object handleResourceNotFoundException(ResourceNotFoundException e, HttpServletRequest request) {
         log.warn("Resource not found: {} - URL: {}", e.getMessage(), request.getRequestURL());
-
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, e.getMessage());
-        } else {
-            return Result.error(e.getCode(), e.getMessage());
-        }
+        return createResponse(e.getMessage(), e.getCode(), request);
     }
 
     /**
@@ -68,13 +63,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Object handleValidationException(ValidationException e, HttpServletRequest request) {
         log.warn("Validation error: {} - URL: {}", e.getMessage(), request.getRequestURL());
-
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, e.getMessage());
-        } else {
-            return Result.error(e.getCode(), e.getMessage());
-        }
+        return createResponse(e.getMessage(), e.getCode(), request);
     }
 
     /**
@@ -84,13 +73,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Object handleUnauthorizedException(UnauthorizedException e, HttpServletRequest request) {
         log.warn("Unauthorized access: {} - URL: {}", e.getMessage(), request.getRequestURL());
-
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, e.getMessage());
-        } else {
-            return Result.error(e.getCode(), e.getMessage());
-        }
+        return createResponse(e.getMessage(), e.getCode(), request);
     }
 
     /**
@@ -106,12 +89,7 @@ public class GlobalExceptionHandler {
         log.warn("Parameter validation error: {} - URL: {}", errorMessage, request.getRequestURL());
 
         String message = "参数验证失败: " + errorMessage;
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, message);
-        } else {
-            return Result.error(400, message);
-        }
+        return createResponse(message, 400, request);
     }
 
     /**
@@ -126,12 +104,7 @@ public class GlobalExceptionHandler {
         log.warn("Bind error: {} - URL: {}", errorMessage, request.getRequestURL());
 
         String message = "数据绑定失败: " + errorMessage;
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, message);
-        } else {
-            return Result.error(400, message);
-        }
+        return createResponse(message, 400, request);
     }
 
     /**
@@ -141,14 +114,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Object handleSQLException(SQLException e, HttpServletRequest request) {
         log.error("Database error occurred - URL: {}", request.getRequestURL(), e);
-
-        String message = "数据库操作失败，请稍后重试";
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, message);
-        } else {
-            return Result.error(500, message);
-        }
+        return createResponse("数据库操作失败，请稍后重试", 500, request);
     }
 
     /**
@@ -158,14 +124,7 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Object handleRuntimeException(RuntimeException e, HttpServletRequest request) {
         log.error("Runtime exception occurred - URL: {}", request.getRequestURL(), e);
-
-        String message = "系统内部错误，请稍后重试";
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, message);
-        } else {
-            return Result.error(500, message);
-        }
+        return createResponse("系统内部错误，请稍后重试", 500, request);
     }
 
     /**
@@ -175,13 +134,6 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Object handleException(Exception e, HttpServletRequest request) {
         log.error("Unexpected exception occurred - URL: {}", request.getRequestURL(), e);
-
-        String message = "系统发生未知错误，请联系管理员";
-        String requestURI = request.getRequestURI();
-        if (requestURI.startsWith("/auth")) {
-            return ApiResponse.error(1, message);
-        } else {
-            return Result.error(500, message);
-        }
+        return createResponse("系统发生未知错误，请联系管理员", 500, request);
     }
 }

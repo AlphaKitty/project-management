@@ -64,6 +64,17 @@
                     </div>
                 </template>
 
+                <template #description="{ record }">
+                    <div class="description-action">
+                        <a-button v-if="record.description && record.description.trim()" size="small" type="text"
+                            @click="viewDescription(record)" class="description-btn">
+                            <template #icon><icon-eye /></template>
+                            查看
+                        </a-button>
+                        <span v-else class="no-description-text">无描述</span>
+                    </div>
+                </template>
+
                 <template #priority="{ record }">
                     <a-tag :color="getPriorityColor(record.priority)">
                         {{ getPriorityLabel(record.priority) }}
@@ -167,6 +178,33 @@
             </a-form>
         </a-modal>
 
+        <!-- 查看描述模态框 -->
+        <a-modal v-model:visible="descriptionModalVisible" title="任务描述" @cancel="closeDescriptionModal" :footer="false"
+            width="600px">
+            <div class="description-modal-content">
+                <div class="description-header">
+                    <h3>{{ currentTask?.title }}</h3>
+                    <div class="task-info">
+                        <a-tag v-if="currentTask?.priority" :color="getPriorityColor(currentTask.priority)">
+                            {{ getPriorityLabel(currentTask.priority) }}
+                        </a-tag>
+                        <a-tag v-if="currentTask" :color="getStatusColor(currentTask)">
+                            {{ getStatusLabel(currentTask) }}
+                        </a-tag>
+                    </div>
+                </div>
+                <a-divider />
+                <div class="description-content-modal">
+                    <div v-if="currentTask?.description" class="description-text">
+                        {{ currentTask.description }}
+                    </div>
+                    <div v-else class="no-description-placeholder">
+                        暂无任务描述
+                    </div>
+                </div>
+            </div>
+        </a-modal>
+
         <!-- 发送邮件模态框 --> <a-modal v-model:visible="sendEmailModal" title="发送待办任务邮件" @before-ok="handleSendEmail"
             @cancel="sendEmailModal = false" width="800px"> <a-form layout="vertical"> <a-form-item label="邮件发送说明">
                     <a-alert type="info" show-icon> <template #title>邮件将自动发送给待办任务的责任人</template>
@@ -259,7 +297,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Message } from '@arco-design/web-vue'
-import { IconPlus, IconEmail, IconUpload } from '@arco-design/web-vue/es/icon'
+import { IconPlus, IconEmail, IconUpload, IconEye } from '@arco-design/web-vue/es/icon'
 import { useTodoStore } from '@/stores/todos'
 import { useProjectStore } from '@/stores/projects'
 import { useUserStore } from '@/stores/user'
@@ -286,6 +324,10 @@ const userSearchText = ref('')
 const searchResultUsers = ref<User[]>([])
 const submitting = ref(false)
 const formErrors = ref<Record<string, string>>({})
+
+// 描述查看相关
+const descriptionModalVisible = ref(false)
+const currentTask = ref<Todo | null>(null)
 
 const emailTodoList = ref<Todo[]>([])
 
@@ -351,6 +393,7 @@ const formRules = {
 const columns = computed(() => {
     const baseColumns = [
         { title: '任务标题', dataIndex: 'title', key: 'title', slotName: 'title', width: 200 },
+        { title: '描述', dataIndex: 'description', key: 'description', slotName: 'description', width: 120, align: 'center' },
         { title: '优先级', dataIndex: 'priority', key: 'priority', slotName: 'priority', align: 'center' },
         { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', align: 'center' },
         { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project', width: 200, align: 'center' },
@@ -492,6 +535,17 @@ const getStatusColor = (todo: Todo) => {
 // 项目筛选处理
 const handleProjectFilter = (projectId: number | undefined) => {
     selectedProjectId.value = projectId
+}
+
+// 查看描述相关方法
+const viewDescription = (todo: Todo) => {
+    currentTask.value = todo
+    descriptionModalVisible.value = true
+}
+
+const closeDescriptionModal = () => {
+    descriptionModalVisible.value = false
+    currentTask.value = null
 }
 
 // 用户搜索缓存
@@ -953,7 +1007,7 @@ const previewColumns = [
     { title: '项目', dataIndex: 'projectName', slotName: 'project', width: 120 },
     { title: '负责人', dataIndex: 'username', slotName: 'assignee', width: 120, align: 'center' },
     { title: '优先级', dataIndex: 'priority', slotName: 'priority', width: 100, align: 'center' },
-    { title: '描述', dataIndex: 'description', width: 150 },
+    { title: '描述', dataIndex: 'description', slotName: 'description', width: 200 },
     { title: '截止日期', dataIndex: 'dueDate', slotName: 'dueDate', width: 120, align: 'center' }
 ]
 
@@ -1124,9 +1178,9 @@ onUnmounted(() => {
 .filter-section {
     margin-bottom: 16px;
     padding: 16px;
-    background: #fff;
+    background: var(--card-bg-color);
     border-radius: 6px;
-    border: 1px solid #f0f0f0;
+    border: 1px solid var(--border-color);
 }
 
 .filter-tabs {
@@ -1145,7 +1199,72 @@ onUnmounted(() => {
 
 .task-title .completed {
     text-decoration: line-through;
-    color: #999;
+    color: var(--text-muted);
+}
+
+.description-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.description-btn {
+    color: var(--primary-color);
+    border: none;
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.description-btn:hover {
+    background-color: var(--primary-color-light);
+}
+
+.no-description-text {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.description-modal-content {
+    padding: 4px 0;
+}
+
+.description-header {
+    margin-bottom: 16px;
+}
+
+.description-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    color: var(--text-color);
+}
+
+.task-info {
+    display: flex;
+    gap: 8px;
+}
+
+.description-content-modal {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.description-text {
+    white-space: pre-line;
+    line-height: 1.6;
+    color: var(--text-color);
+    font-size: 14px;
+    padding: 16px;
+    background-color: var(--card-bg-color);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.no-description-placeholder {
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 32px;
 }
 
 .user-option {
@@ -1156,12 +1275,12 @@ onUnmounted(() => {
 
 .user-main {
     font-weight: 500;
-    color: #1d2129;
+    color: var(--text-color);
 }
 
 .user-sub {
     font-size: 12px;
-    color: #86909c;
+    color: var(--text-muted);
 }
 
 .user-option-inline {
@@ -1169,16 +1288,16 @@ onUnmounted(() => {
 }
 
 .email-preview {
-    border: 1px solid #f0f0f0;
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 16px;
-    background: #fafafa;
+    background: var(--card-bg-color);
 }
 
 .email-header {
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 1px solid #e5e5e5;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .assignee-list {
@@ -1190,11 +1309,11 @@ onUnmounted(() => {
 
 .email-header p {
     margin: 4px 0;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .email-table {
-    background: white;
+    background: var(--card-bg-color);
     border-radius: 4px;
 }
 

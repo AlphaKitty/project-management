@@ -609,22 +609,27 @@ onMounted(() => {
     margin: 0 0 8px 0;
     font-size: 24px;
     font-weight: 600;
-    color: #1d2129;
+    color: var(--text-color);
 }
 
 .page-header p {
     margin: 0;
-    color: #86909c;
+    color: var(--text-muted);
     font-size: 14px;
 }
 
 .filter-section {
     margin-bottom: 24px;
+    background: var(--card-bg-color);
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
 }
 
 .rules-list {
-    background: #fff;
+    background: var(--card-bg-color);
     border-radius: 8px;
+    border: 1px solid var(--border-color);
 }
 
 .rule-name {
@@ -634,18 +639,18 @@ onMounted(() => {
 
 .rule-name .name {
     font-weight: 500;
-    color: #1d2129;
+    color: var(--text-color);
 }
 
 .description {
-    color: #86909c;
+    color: var(--text-muted);
     font-size: 13px;
     line-height: 1.4;
 }
 
 .frequency {
     font-size: 12px;
-    color: #86909c;
+    color: var(--text-muted);
 }
 
 :deep(.arco-table-th) {

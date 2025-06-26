@@ -262,8 +262,9 @@ public class TodoServiceImpl extends ServiceImpl<TodoMapper, Todo> implements To
                         .append("<div><strong>优先级：</strong> ").append(priorityText).append("</div>")
                         .append("<div><strong>截止日期：</strong> ").append(dueDateText).append("</div>")
                         .append(todo.getDescription() != null && !todo.getDescription().isEmpty()
-                                ? "<div style='margin-top: 8px; padding: 8px; background-color: #f7fafc; border-radius: 4px;'>"
-                                        + todo.getDescription() + "</div>"
+                                ? "<div style='margin-top: 8px; padding: 8px; background-color: #f7fafc; border-radius: 4px; white-space: pre-line;'>"
+                                        + todo.getDescription().replace("\n", "<br/>").replace("\r\n", "<br/>")
+                                        + "</div>"
                                 : "")
                         .append("</div>")
                         .append("</div>")

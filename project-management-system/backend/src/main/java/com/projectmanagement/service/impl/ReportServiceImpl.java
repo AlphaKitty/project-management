@@ -10,7 +10,7 @@ import com.projectmanagement.mapper.ReportMapper;
 import com.projectmanagement.mapper.TodoMapper;
 import com.projectmanagement.mapper.UserMapper;
 import com.projectmanagement.service.ReportService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -27,19 +27,13 @@ import java.util.stream.Collectors;
  * 报告服务实现类
  */
 @Service
+@RequiredArgsConstructor
 public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> implements ReportService {
 
-    @Autowired
-    private ReportMapper reportMapper;
-
-    @Autowired
-    private TodoMapper todoMapper;
-
-    @Autowired
-    private ProjectMapper projectMapper;
-
-    @Autowired
-    private UserMapper userMapper;
+    private final ReportMapper reportMapper;
+    private final TodoMapper todoMapper;
+    private final ProjectMapper projectMapper;
+    private final UserMapper userMapper;
 
     @Override
     public List<Report> getReports() {

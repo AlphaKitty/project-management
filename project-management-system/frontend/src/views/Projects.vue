@@ -86,7 +86,7 @@
           <a-select v-model="formData.assigneeId" placeholder="请输入关键字搜索责任人" allow-search allow-clear
             :filter-option="false" :loading="userStore.loading" @search="handleUserSearch">
             <template #empty>
-              <div style="text-align: center; padding: 20px; color: #999;">
+              <div class="empty-projects">
                 {{ userSearchText
                   ? (userSearchText.length < 2 ? '请输入至少2个字符进行搜索' : '无搜索结果') : '请输入关键字搜索用户' }} </div>
             </template>
@@ -984,7 +984,7 @@ onUnmounted(() => {
   text-align: center;
   margin-top: 8px;
   font-weight: 500;
-  color: #1890ff;
+  color: var(--primary-color);
 }
 
 /* 用户选项样式 */
@@ -1003,18 +1003,18 @@ onUnmounted(() => {
 
 /* 里程碑编辑器样式 */
 .milestones-editor {
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 12px;
-  background: #fafafa;
+  background: var(--tag-bg-color);
 }
 
 .milestone-item {
   margin-bottom: 8px;
   padding: 8px;
-  background: white;
+  background: var(--card-bg-color);
   border-radius: 4px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
 }
 
 .milestone-item:last-child {
@@ -1029,17 +1029,17 @@ onUnmounted(() => {
 }
 
 .milestone-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-  border: 1px solid #e8e8e8;
+  background: var(--card-bg-color);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 4px 6px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--theme-shadow-light);
 }
 
 .milestone-card:hover {
-  border-color: #52c41a;
-  box-shadow: 0 2px 6px rgba(82, 196, 26, 0.15);
+  border-color: var(--theme-success);
+  box-shadow: var(--theme-shadow-medium);
 }
 
 .milestone-row {
@@ -1051,7 +1051,7 @@ onUnmounted(() => {
 .milestone-name {
   font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1068,7 +1068,7 @@ onUnmounted(() => {
 
 .milestone-date {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   font-family: monospace;
   flex-shrink: 0;
 }
@@ -1076,7 +1076,7 @@ onUnmounted(() => {
 .no-milestones {
   text-align: center;
   padding: 12px;
-  color: #999;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -1093,7 +1093,7 @@ onUnmounted(() => {
 .work-plan-content {
   font-size: 12px;
   line-height: 1.4;
-  color: #333;
+  color: var(--text-color);
   text-align: left;
   word-break: break-word;
   white-space: pre-wrap;
@@ -1102,7 +1102,7 @@ onUnmounted(() => {
 .no-work-plan {
   text-align: center;
   padding: 12px;
-  color: #999;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -1133,9 +1133,9 @@ onUnmounted(() => {
 
 .todo-detail-item {
   padding: 8px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--tag-bg-color);
 }
 
 .todo-header {
@@ -1151,7 +1151,7 @@ onUnmounted(() => {
 
 .todo-title {
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1163,7 +1163,7 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 2px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .todo-assignee {
@@ -1171,7 +1171,7 @@ onUnmounted(() => {
 }
 
 .todo-dates {
-  color: #999;
+  color: var(--text-muted);
 }
 
 .todo-remaining {
@@ -1188,5 +1188,11 @@ onUnmounted(() => {
 
 .todo-normal {
   color: #00b42a;
+}
+
+.empty-projects {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
 }
 </style>
