@@ -75,4 +75,9 @@ public interface ProjectService extends IService<Project> {
      * 更新所有项目的工作计划
      */
     void updateAllProjectWorkPlans();
+
+    /**
+     * 更新所有项目的工作计划（指定天数）
+     */
+    void updateAllProjectWorkPlans(Integer days);
 }

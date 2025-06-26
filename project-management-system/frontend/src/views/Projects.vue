@@ -185,14 +185,29 @@
     <!-- 项目概览模态框 -->
     <a-modal v-model:visible="overviewModalVisible" title="项目概览" width="1800px" :footer="false">
       <div class="overview-header">
-        <a-button type="primary" @click="updateWorkPlans" :loading="workUpdateLoading">
-          <template #icon><icon-refresh /></template>
-          工作更新
-        </a-button>
-        <a-button type="primary" @click="exportToExcel">
-          <template #icon><icon-download /></template>
-          导出Excel
-        </a-button>
+        <div class="overview-controls">
+          <div class="work-update-controls">
+            <a-switch 
+              v-model="weeklyModeEnabled" 
+              :checked-text="'周模式'" 
+              :unchecked-text="'双周模式'"
+              class="work-mode-switch"
+            />
+            <span class="mode-description">
+              {{ weeklyModeEnabled ? '更新7天内进度' : '更新14天内进度' }}
+            </span>
+          </div>
+          <div class="action-buttons">
+            <a-button type="primary" @click="updateWorkPlans" :loading="workUpdateLoading">
+              <template #icon><icon-refresh /></template>
+              工作更新
+            </a-button>
+            <a-button type="primary" @click="exportToExcel">
+              <template #icon><icon-download /></template>
+              导出Excel
+            </a-button>
+          </div>
+        </div>
       </div>
       <div class="overview-content">
         <a-table :columns="overviewColumns" :data="projectStore.overviewProjects" :loading="projectStore.loading"
@@ -349,6 +364,7 @@ const todoModalVisible = ref(false)
 const isEdit = ref(false)
 const workUpdateLoading = ref(false)
 const currentProject = ref<Project | null>(null)
+const weeklyModeEnabled = ref(true) // 默认开启周模式(7天)
 const formData = ref<ProjectDTO>({
   name: '',
   description: '',
@@ -779,8 +795,11 @@ const updateWorkPlans = async () => {
   try {
     workUpdateLoading.value = true
 
+    // 根据开关状态确定更新天数
+    const days = weeklyModeEnabled.value ? 7 : 14
+
     // 调用后端API更新所有项目的工作计划
-    const response = await fetch('/api/projects/update-work-plans', {
+    const response = await fetch(`/api/projects/update-work-plans?days=${days}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -790,7 +809,8 @@ const updateWorkPlans = async () => {
     if (response.ok) {
       // 重新加载项目概览数据
       await projectStore.fetchProjectOverview()
-      Message.success('工作计划更新成功')
+      const modeText = weeklyModeEnabled.value ? '周' : '双周'
+      Message.success(`${modeText}工作计划更新成功`)
     } else {
       throw new Error('更新失败')
     }
@@ -1288,9 +1308,54 @@ onUnmounted(() => {
 /* 概览头部样式 */
 .overview-header {
   margin-bottom: 16px;
+}
+
+.overview-controls {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.work-update-controls {
+  display: flex;
+  align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.work-mode-switch {
+  flex-shrink: 0;
+}
+
+.mode-description {
+  font-size: 12px;
+  color: var(--theme-text-secondary);
+  white-space: nowrap;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .overview-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .work-update-controls {
+    justify-content: center;
+  }
+  
+  .action-buttons {
+    justify-content: center;
+  }
 }
 
 /* 概览内容样式 */

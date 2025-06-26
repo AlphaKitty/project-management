@@ -162,14 +162,14 @@ public class ProjectController {
      */
     @PostMapping("/update-work-plans")
     @OperationLog(type = OperationType.UPDATE, module = BusinessModule.PROJECT, description = "更新项目工作计划")
-    public Result<String> updateWorkPlans(HttpSession session) {
+    public Result<String> updateWorkPlans(@RequestParam(defaultValue = "7") Integer days, HttpSession session) {
         User currentUser = (User) session.getAttribute("currentUser");
         if (currentUser == null) {
             return Result.unauthorized();
         }
 
         try {
-            projectService.updateAllProjectWorkPlans();
+            projectService.updateAllProjectWorkPlans(days);
             return Result.success("工作计划更新成功");
         } catch (Exception e) {
             return Result.error("工作计划更新失败: " + e.getMessage());

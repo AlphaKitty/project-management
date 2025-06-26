@@ -343,15 +343,21 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     @Override
     @Transactional
     public void updateAllProjectWorkPlans() {
+        updateAllProjectWorkPlans(7); // 默认7天
+    }
+
+    @Override
+    @Transactional
+    public void updateAllProjectWorkPlans(Integer days) {
         // 获取所有项目
         List<Project> projects = projectMapper.selectList(null);
 
-        // 计算本周和下周的日期范围
+        // 计算指定天数的日期范围
         LocalDate today = LocalDate.now();
-        LocalDate startOfThisWeek = today.minusDays(today.getDayOfWeek().getValue() - 1);
-        LocalDate endOfThisWeek = startOfThisWeek.plusDays(6);
-        LocalDate startOfNextWeek = endOfThisWeek.plusDays(1);
-        LocalDate endOfNextWeek = startOfNextWeek.plusDays(6);
+        LocalDate startOfThisPeriod = today.minusDays(days - 1);
+        LocalDate endOfThisPeriod = today;
+        LocalDate startOfNextPeriod = today.plusDays(1);
+        LocalDate endOfNextPeriod = today.plusDays(days);
 
         for (Project project : projects) {
             // 查询项目相关的待办任务
@@ -359,16 +365,16 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
             queryWrapper.eq("project_id", project.getId());
             List<Todo> todos = todoMapper.selectList(queryWrapper);
 
-            // 生成本周工作内容
-            String thisWeekWork = generateThisWeekWork(todos, startOfThisWeek, endOfThisWeek);
-            String milestoneThisWeekWork = generateMilestoneBasedThisWeekWork(project, startOfThisWeek, endOfThisWeek);
+            // 生成当前周期工作内容
+            String thisWeekWork = generatePeriodWork(todos, startOfThisPeriod, endOfThisPeriod, days);
+            String milestoneThisWeekWork = generateMilestoneBasedPeriodWork(project, startOfThisPeriod, endOfThisPeriod, days);
 
             // 合并任务和项目整体状态
             thisWeekWork = combineWorkContent(thisWeekWork, milestoneThisWeekWork);
 
-            // 生成下周计划内容
-            String nextWeekPlan = generateNextWeekPlan(todos, startOfNextWeek, endOfNextWeek);
-            String milestoneNextWeekPlan = generateMilestoneBasedNextWeekPlan(project, startOfNextWeek, endOfNextWeek);
+            // 生成下个周期计划内容
+            String nextWeekPlan = generatePeriodPlan(todos, startOfNextPeriod, endOfNextPeriod, days);
+            String milestoneNextWeekPlan = generateMilestoneBasedPeriodPlan(project, startOfNextPeriod, endOfNextPeriod, days);
 
             // 合并任务和项目整体计划
             nextWeekPlan = combineWorkContent(nextWeekPlan, milestoneNextWeekPlan);
@@ -381,12 +387,13 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     }
 
     /**
-     * 生成本周工作内容
+     * 生成指定周期工作内容
      */
-    private String generateThisWeekWork(List<Todo> todos, LocalDate startDate, LocalDate endDate) {
+    private String generatePeriodWork(List<Todo> todos, LocalDate startDate, LocalDate endDate, Integer days) {
         StringBuilder content = new StringBuilder();
+        String periodDesc = days == 7 ? "本周" : "近" + days + "天";
 
-        // 本周已完成的任务
+        // 指定周期内已完成的任务
         List<Todo> completedTodos = todos.stream()
                 .filter(todo -> "DONE".equals(todo.getStatus()) &&
                         todo.getCompletedTime() != null &&
@@ -394,7 +401,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
                         !todo.getCompletedTime().toLocalDate().isAfter(endDate))
                 .collect(Collectors.toList());
 
-        // 本周进行中的任务
+        // 进行中的任务
         List<Todo> inProgressTodos = todos.stream()
                 .filter(todo -> "PROGRESS".equals(todo.getStatus()))
                 .collect(Collectors.toList());
@@ -416,16 +423,6 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
             content.append("进行中任务：\n");
             for (Todo todo : inProgressTodos) {
                 content.append("- ").append(todo.getTitle());
-                if (todo.getDueDate() != null) {
-                    // long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), todo.getDueDate());
-                    // if (daysLeft > 0) {
-                    // content.append("（剩余").append(daysLeft).append("天）");
-                    // } else if (daysLeft == 0) {
-                    // content.append("（今日截止）");
-                    // } else {
-                    // content.append("（已逾期").append(Math.abs(daysLeft)).append("天）");
-                    // }
-                }
                 content.append("\n");
             }
         }
@@ -434,26 +431,27 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     }
 
     /**
-     * 生成下周计划内容
+     * 生成指定周期计划内容
      */
-    private String generateNextWeekPlan(List<Todo> todos, LocalDate startDate, LocalDate endDate) {
+    private String generatePeriodPlan(List<Todo> todos, LocalDate startDate, LocalDate endDate, Integer days) {
         StringBuilder content = new StringBuilder();
+        String periodDesc = days == 7 ? "下周" : "未来" + days + "天";
 
-        // 下周计划的任务（未完成的任务）
+        // 计划任务（未完成的任务）
         List<Todo> plannedTodos = todos.stream()
                 .filter(todo -> !"DONE".equals(todo.getStatus()))
                 .collect(Collectors.toList());
 
-        // 下周截止的任务
-        List<Todo> nextWeekDueTodos = plannedTodos.stream()
+        // 指定周期内截止的任务
+        List<Todo> periodDueTodos = plannedTodos.stream()
                 .filter(todo -> todo.getDueDate() != null &&
                         !todo.getDueDate().isBefore(startDate) &&
                         !todo.getDueDate().isAfter(endDate))
                 .collect(Collectors.toList());
 
-        if (!nextWeekDueTodos.isEmpty()) {
-            content.append("下周截止任务：\n");
-            for (Todo todo : nextWeekDueTodos) {
+        if (!periodDueTodos.isEmpty()) {
+            content.append(periodDesc).append("截止任务：\n");
+            for (Todo todo : periodDueTodos) {
                 content.append("- ").append(todo.getTitle());
                 content.append("（截止：").append(todo.getDueDate()).append("）");
                 content.append("\n");
@@ -471,7 +469,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         if (!otherTodos.isEmpty()) {
             if (content.length() > 0)
                 content.append("\n");
-            content.append("下周计划\n");
+            content.append(periodDesc).append("计划：\n");
             for (Todo todo : otherTodos) {
                 content.append("- ").append(todo.getTitle());
                 if (todo.getDueDate() != null) {
@@ -485,9 +483,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     }
 
     /**
-     * 基于里程碑生成本周工作内容
+     * 基于里程碑生成指定周期工作内容
      */
-    private String generateMilestoneBasedThisWeekWork(Project project, LocalDate startDate, LocalDate endDate) {
+    private String generateMilestoneBasedPeriodWork(Project project, LocalDate startDate, LocalDate endDate, Integer days) {
         try {
             if (project.getMilestones() == null || project.getMilestones().trim().isEmpty()) {
                 return "项目正常推进中，按计划执行各项工作";
@@ -499,8 +497,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
 
             StringBuilder content = new StringBuilder();
             LocalDate today = LocalDate.now();
+            String periodDesc = days == 7 ? "本周" : "近" + days + "天";
 
-            // 查找本周相关的里程碑
+            // 查找指定周期相关的里程碑
             for (Map<String, Object> milestone : milestones) {
                 String name = (String) milestone.get("name");
                 String status = (String) milestone.get("status");
@@ -512,12 +511,12 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
                 if (dueDateStr != null && !dueDateStr.trim().isEmpty()) {
                     LocalDate dueDate = LocalDate.parse(dueDateStr);
 
-                    // 本周到期的里程碑
+                    // 指定周期内到期的里程碑
                     if (!dueDate.isBefore(startDate) && !dueDate.isAfter(endDate)) {
                         if ("COMPLETED".equals(status)) {
                             content.append("已完成里程碑：").append(name).append("\n");
                         } else {
-                            content.append("推进里程碑：").append(name).append("（本周截止）\n");
+                            content.append("推进里程碑：").append(name).append("（").append(periodDesc).append("截止）\n");
                         }
                     }
                     // 进行中的里程碑
@@ -547,9 +546,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     }
 
     /**
-     * 基于里程碑生成下周计划内容
+     * 基于里程碑生成指定周期计划内容
      */
-    private String generateMilestoneBasedNextWeekPlan(Project project, LocalDate startDate, LocalDate endDate) {
+    private String generateMilestoneBasedPeriodPlan(Project project, LocalDate startDate, LocalDate endDate, Integer days) {
         try {
             if (project.getMilestones() == null || project.getMilestones().trim().isEmpty()) {
                 return "继续推进项目各项工作，确保按时完成既定目标";
@@ -561,8 +560,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
 
             StringBuilder content = new StringBuilder();
             LocalDate today = LocalDate.now();
+            String periodDesc = days == 7 ? "下周" : "未来" + days + "天";
 
-            // 查找下周相关的里程碑
+            // 查找指定周期相关的里程碑
             for (Map<String, Object> milestone : milestones) {
                 String name = (String) milestone.get("name");
                 String status = (String) milestone.get("status");
@@ -574,16 +574,16 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
                 if (dueDateStr != null && !dueDateStr.trim().isEmpty()) {
                     LocalDate dueDate = LocalDate.parse(dueDateStr);
 
-                    // 下周到期的里程碑
+                    // 指定周期内到期的里程碑
                     if (!dueDate.isBefore(startDate) && !dueDate.isAfter(endDate)) {
                         if (!"COMPLETED".equals(status)) {
-                            content.append("完成里程碑：").append(name).append("（下周截止）\n");
+                            content.append("完成里程碑：").append(name).append("（").append(periodDesc).append("截止）\n");
                         }
                     }
                     // 即将开始的里程碑
                     else if ("PENDING".equals(status) && dueDate.isAfter(endDate)) {
                         long daysUntilStart = ChronoUnit.DAYS.between(today, dueDate);
-                        if (daysUntilStart <= 14) { // 两周内的里程碑
+                        if (daysUntilStart <= days * 2) { // 两个周期内的里程碑
                             content.append("准备启动：").append(name).append("（").append(daysUntilStart).append("天后开始）\n");
                         }
                     }
