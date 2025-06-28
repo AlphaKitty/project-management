@@ -52,6 +52,34 @@
             </div>
           </div>
 
+          <!-- 风险预警 -->
+          <div class="recommendation-section" v-if="recommendations.risk.length > 0">
+            <div class="section-header">
+              <span class="section-icon">⚠️</span>
+              <span class="section-title">风险预警</span>
+              <span class="section-count">({{ recommendations.risk.length }})</span>
+            </div>
+            <div class="recommendation-list">
+              <div class="recommendation-item risk" v-for="item in recommendations.risk" :key="item.id"
+                @click="handleRecommendationClick(item)">
+                <div class="item-content">
+                  <div class="item-title risk-title">
+                    <span class="time-badge" 
+                          :class="getTimeBadgeClass(extractTimeBadge(item.title))"
+                          v-if="extractTimeBadge(item.title)">{{ extractTimeBadge(item.title) }}</span>
+                    <span class="title-text">{{ extractTitleText(item.title) }}</span>
+                  </div>
+                  <div class="item-description">{{ item.description }}</div>
+                </div>
+                <div class="item-actions">
+                  <a-button size="mini" type="primary" status="warning" @click.stop="executeRecommendation(item)">
+                    立即查看
+                  </a-button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- 项目停滞 -->
           <div class="recommendation-section" v-if="recommendations.stagnant.length > 0">
             <div class="section-header">
@@ -69,6 +97,29 @@
                 <div class="item-actions">
                   <a-button size="mini" type="outline" @click.stop="executeRecommendation(item)">
                     去推进
+                  </a-button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 协作推进 -->
+          <div class="recommendation-section" v-if="recommendations.collaboration.length > 0">
+            <div class="section-header">
+              <span class="section-icon">🤝</span>
+              <span class="section-title">协作推进</span>
+              <span class="section-count">({{ recommendations.collaboration.length }})</span>
+            </div>
+            <div class="recommendation-list">
+              <div class="recommendation-item collaboration" v-for="item in recommendations.collaboration" :key="item.id"
+                @click="handleRecommendationClick(item)">
+                <div class="item-content">
+                  <div class="item-title">{{ item.title }}</div>
+                  <div class="item-description">{{ item.description }}</div>
+                </div>
+                <div class="item-actions">
+                  <a-button size="mini" type="outline" @click.stop="executeRecommendation(item)">
+                    去协作
                   </a-button>
                 </div>
               </div>
@@ -190,6 +241,38 @@ const executeRecommendation = async (item: WorkRecommendation) => {
   }
 }
 
+// 提取时间标识
+const extractTimeBadge = (title: string) => {
+  const match = title.match(/^\[([^\]]+)\]/)
+  return match ? match[1] : null
+}
+
+// 提取标题文本（去除时间标识）
+const extractTitleText = (title: string) => {
+  return title.replace(/^\[([^\]]+)\]\s*/, '')
+}
+
+// 获取时间标识的样式类
+const getTimeBadgeClass = (timeBadge: string | null) => {
+  if (!timeBadge) return ''
+  
+  if (timeBadge.includes('逾期')) {
+    return 'overdue'
+  } else if (timeBadge.includes('今日')) {
+    return 'today'
+  } else if (timeBadge.includes('剩余')) {
+    const days = parseInt(timeBadge.match(/\d+/)?.[0] || '0')
+    if (days <= 1) {
+      return 'urgent'
+    } else if (days <= 3) {
+      return 'warning' 
+    } else {
+      return 'normal'
+    }
+  }
+  return 'normal'
+}
+
 // 生命周期
 onMounted(() => {
   loadRecommendations()
@@ -296,6 +379,14 @@ onMounted(() => {
   border-left: 4px solid #ffa502;
 }
 
+.recommendation-item.risk {
+  border-left: 4px solid #ff6b35;
+}
+
+.recommendation-item.collaboration {
+  border-left: 4px solid #3742fa;
+}
+
 .item-content {
   flex: 1;
   margin-right: 12px;
@@ -305,6 +396,76 @@ onMounted(() => {
   font-weight: 500;
   margin-bottom: 4px;
   color: var(--text-color);
+}
+
+.risk-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.time-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  color: white;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.time-badge.overdue {
+  background: linear-gradient(135deg, #ff3742, #ff1744);
+  box-shadow: 0 2px 6px rgba(255, 23, 68, 0.4);
+  animation: pulse-urgent 1.5s infinite;
+}
+
+.time-badge.today {
+  background: linear-gradient(135deg, #ff6348, #ff4757);
+  box-shadow: 0 2px 6px rgba(255, 71, 87, 0.4);
+  animation: pulse-glow 2s infinite;
+}
+
+.time-badge.urgent {
+  background: linear-gradient(135deg, #ff7675, #e84393);
+  box-shadow: 0 2px 4px rgba(255, 118, 117, 0.3);
+}
+
+.time-badge.warning {
+  background: linear-gradient(135deg, #fdcb6e, #e17055);
+  box-shadow: 0 2px 4px rgba(253, 203, 110, 0.3);
+}
+
+.time-badge.normal {
+  background: linear-gradient(135deg, #74b9ff, #0984e3);
+  box-shadow: 0 2px 4px rgba(116, 185, 255, 0.3);
+}
+
+.title-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 6px rgba(255, 71, 87, 0.4);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(255, 71, 87, 0.6), 0 0 20px rgba(255, 71, 87, 0.3);
+  }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% {
+    box-shadow: 0 2px 6px rgba(255, 23, 68, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 2px 16px rgba(255, 23, 68, 0.8), 0 0 24px rgba(255, 23, 68, 0.4);
+    transform: scale(1.05);
+  }
 }
 
 .item-description {

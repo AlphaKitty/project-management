@@ -308,6 +308,9 @@ const toggleTodoStatus = async (todo: Todo) => {
       try {
         await todoStore.updateStatus(todo.id, newStatus)
         Message.success(`任务状态已更新为：${getStatusText(newStatus)}`)
+        
+        // 重新获取任务列表以确保数据实时更新
+        await todoStore.fetchTodos()
       } catch (error) {
         Message.error('任务状态更新失败')
       }

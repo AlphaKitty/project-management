@@ -52,22 +52,22 @@ public class WorkRecommendationServiceImpl implements WorkRecommendationService 
             // 1. 分析紧急推进项
             urgent.addAll(analyzeUrgentTasks(userTodos));
             log.info("紧急推进分析完成，发现 {} 条", urgent.size());
+            
+            // 2. 分析风险预警
+            risk.addAll(analyzeRiskWarnings(userProjects, userTodos));
+            log.info("风险预警分析完成，发现 {} 条", risk.size());
 
-            // 2. 分析项目停滞
+            // 3. 分析项目停滞
             stagnant.addAll(analyzeStagnantProjects(userProjects, userTodos));
             log.info("项目停滞分析完成，发现 {} 条", stagnant.size());
 
-            // 3. 分析项目推进
+            // 4. 分析项目推进
             progress.addAll(analyzeProgressIssues(userProjects));
             log.info("项目推进分析完成，发现 {} 条", progress.size());
 
-            // 4. 分析协作待办
+            // 5. 分析协作待办
             collaboration.addAll(analyzeCollaborationTasks(userTodos));
             log.info("协作待办分析完成，发现 {} 条", collaboration.size());
-
-            // 5. 分析风险预警
-            risk.addAll(analyzeRiskWarnings(userProjects, userTodos));
-            log.info("风险预警分析完成，发现 {} 条", risk.size());
 
             // 6. 生成智能建议
             suggestions.addAll(generateSuggestions(userProjects, userTodos));
@@ -196,13 +196,39 @@ public class WorkRecommendationServiceImpl implements WorkRecommendationService 
      * 计算距离最后活动的天数
      */
     private long calculateDaysSinceLastActivity(Project project, List<Todo> projectTodos, LocalDateTime now) {
+        // 获取最后完成的待办时间
         LocalDateTime lastCompletedTime = projectTodos.stream()
                 .filter(todo -> "DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null)
                 .map(Todo::getCompletedTime)
                 .max(LocalDateTime::compareTo)
-                .orElse(project.getCreateTime());
+                .orElse(null);
 
-        return ChronoUnit.DAYS.between(lastCompletedTime, now);
+        // 获取最后创建的待办时间
+        LocalDateTime lastCreatedTime = projectTodos.stream()
+                .map(Todo::getCreateTime)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        // 获取最后更新的待办时间
+        LocalDateTime lastUpdatedTime = projectTodos.stream()
+                .map(Todo::getUpdateTime)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        // 取最后活动时间的最大值（创建、完成、更新中的最新时间）
+        LocalDateTime lastActivityTime = project.getCreateTime(); // 默认为项目创建时间
+        
+        if (lastCompletedTime != null && lastCompletedTime.isAfter(lastActivityTime)) {
+            lastActivityTime = lastCompletedTime;
+        }
+        if (lastCreatedTime != null && lastCreatedTime.isAfter(lastActivityTime)) {
+            lastActivityTime = lastCreatedTime;
+        }
+        if (lastUpdatedTime != null && lastUpdatedTime.isAfter(lastActivityTime)) {
+            lastActivityTime = lastUpdatedTime;
+        }
+
+        return ChronoUnit.DAYS.between(lastActivityTime, now);
     }
 
     /**
@@ -359,27 +385,179 @@ public class WorkRecommendationServiceImpl implements WorkRecommendationService 
         LocalDateTime now = LocalDateTime.now();
 
         for (Project project : projects) {
-            if ("PROGRESS".equals(project.getStatus()) && project.getEndDate() != null) {
-                long daysUntilDeadline = ChronoUnit.DAYS.between(now, project.getEndDate());
-
-                // 如果项目即将到期但进度不足80%
-                if (daysUntilDeadline <= 7 && daysUntilDeadline > 0 && project.getProgress() < 80) {
-                    WorkRecommendationDTO.RecommendationItem item = new WorkRecommendationDTO.RecommendationItem();
-                    item.setId(UUID.randomUUID().toString());
-                    item.setType("RISK");
-                    item.setTitle(project.getName() + " - 延期风险");
-                    item.setDescription(String.format("项目 %d 天后到期，当前进度 %d%%，存在延期风险",
-                            daysUntilDeadline, project.getProgress()));
-                    item.setProjectId(project.getId());
-                    item.setPriority("HIGH");
-                    item.setActionType("VIEW_PROJECT");
-                    item.setCreateTime(LocalDateTime.now());
-                    risk.add(item);
-                }
+            if ("PROGRESS".equals(project.getStatus())) {
+                // 重点关注当前进行中里程碑的风险预警
+                risk.addAll(analyzeCurrentMilestoneRisks(project, now));
             }
         }
 
         return risk;
+    }
+
+    /**
+     * 分析当前进行中里程碑的风险预警
+     */
+    private List<WorkRecommendationDTO.RecommendationItem> analyzeCurrentMilestoneRisks(Project project, LocalDateTime now) {
+        List<WorkRecommendationDTO.RecommendationItem> milestoneRisks = new ArrayList<>();
+        
+        if (project.getMilestones() == null || project.getMilestones().trim().isEmpty()) {
+            return milestoneRisks;
+        }
+
+        try {
+            // 解析里程碑JSON数据
+            com.google.gson.Gson gson = new com.google.gson.Gson();
+            com.google.gson.reflect.TypeToken<List<java.util.Map<String, Object>>> typeToken = 
+                new com.google.gson.reflect.TypeToken<List<java.util.Map<String, Object>>>() {};
+            List<java.util.Map<String, Object>> milestones = gson.fromJson(project.getMilestones(), typeToken.getType());
+
+            // 优先分析进行中的里程碑
+            List<java.util.Map<String, Object>> progressMilestones = milestones.stream()
+                .filter(milestone -> "PROGRESS".equals(milestone.get("status")))
+                .collect(java.util.stream.Collectors.toList());
+
+            // 如果没有进行中的里程碑，则分析待开始的里程碑
+            if (progressMilestones.isEmpty()) {
+                progressMilestones = milestones.stream()
+                    .filter(milestone -> "PENDING".equals(milestone.get("status")))
+                    .collect(java.util.stream.Collectors.toList());
+            }
+
+            for (java.util.Map<String, Object> milestone : progressMilestones) {
+                String name = (String) milestone.get("name");
+                String status = (String) milestone.get("status");
+                String dueDateStr = (String) milestone.get("dueDate");
+
+                if (dueDateStr != null && !dueDateStr.trim().isEmpty()) {
+                    try {
+                        // 解析里程碑截止日期
+                        java.time.LocalDate dueDate = java.time.LocalDate.parse(dueDateStr);
+                        LocalDateTime dueDatetime = dueDate.atTime(23, 59, 59);
+                        long daysUntilMilestone = ChronoUnit.DAYS.between(now, dueDatetime);
+
+                        WorkRecommendationDTO.RecommendationItem item = null;
+                        String statusText = "PROGRESS".equals(status) ? "进行中" : "待开始";
+
+                        if (daysUntilMilestone < 0) {
+                            // 当前里程碑已逾期 - 最高优先级
+                            item = new WorkRecommendationDTO.RecommendationItem();
+                            item.setId(UUID.randomUUID().toString());
+                            item.setType("RISK");
+                            item.setTitle(String.format("[逾期%d天] %s - 当前里程碑逾期", 
+                                    Math.abs(daysUntilMilestone), project.getName()));
+                            item.setDescription(String.format("当前%s里程碑「%s」已逾期 %d 天，严重影响项目进度！",
+                                    statusText, name, Math.abs(daysUntilMilestone)));
+                            item.setPriority("HIGH");
+                        } else if (daysUntilMilestone == 0) {
+                            // 当前里程碑今日到期 - 最高优先级
+                            item = new WorkRecommendationDTO.RecommendationItem();
+                            item.setId(UUID.randomUUID().toString());
+                            item.setType("RISK");
+                            item.setTitle(String.format("[今日到期] %s - 当前里程碑今日到期", project.getName()));
+                            item.setDescription(String.format("当前%s里程碑「%s」今日到期，请立即处理！",
+                                    statusText, name));
+                            item.setPriority("HIGH");
+                        } else if (daysUntilMilestone <= 3) {
+                            // 当前里程碑即将到期（3天内）- 高优先级
+                            item = new WorkRecommendationDTO.RecommendationItem();
+                            item.setId(UUID.randomUUID().toString());
+                            item.setType("RISK");
+                            item.setTitle(String.format("[剩余%d天] %s - 当前里程碑紧急", 
+                                    daysUntilMilestone, project.getName()));
+                            item.setDescription(String.format("当前%s里程碑「%s」还有 %d 天到期，请加急推进！",
+                                    statusText, name, daysUntilMilestone));
+                            item.setPriority("HIGH");
+                        } else if (daysUntilMilestone <= 7) {
+                            // 当前里程碑一周内到期 - 中等优先级
+                            item = new WorkRecommendationDTO.RecommendationItem();
+                            item.setId(UUID.randomUUID().toString());
+                            item.setType("RISK");
+                            item.setTitle(String.format("[剩余%d天] %s - 当前里程碑提醒", 
+                                    daysUntilMilestone, project.getName()));
+                            item.setDescription(String.format("当前%s里程碑「%s」还有 %d 天到期，建议重点关注",
+                                    statusText, name, daysUntilMilestone));
+                            item.setPriority("MEDIUM");
+                        } else if (daysUntilMilestone <= 14) {
+                            // 当前里程碑两周内到期 - 提前提醒
+                            item = new WorkRecommendationDTO.RecommendationItem();
+                            item.setId(UUID.randomUUID().toString());
+                            item.setType("RISK");
+                            item.setTitle(String.format("[剩余%d天] %s - 里程碑计划提醒", 
+                                    daysUntilMilestone, project.getName()));
+                            item.setDescription(String.format("当前%s里程碑「%s」还有 %d 天到期，建议制定详细计划",
+                                    statusText, name, daysUntilMilestone));
+                            item.setPriority("MEDIUM");
+                        }
+
+                        if (item != null) {
+                            item.setProjectId(project.getId());
+                            item.setActionType("VIEW_PROJECT");
+                            item.setCreateTime(LocalDateTime.now());
+                            milestoneRisks.add(item);
+
+                            log.info("发现当前里程碑风险: 项目={}, 里程碑={}, 状态={}, 剩余天数={}", 
+                                    project.getName(), name, status, daysUntilMilestone);
+                        }
+
+                    } catch (Exception e) {
+                        log.warn("解析里程碑日期失败: {}, 日期字符串: {}", name, dueDateStr, e);
+                    }
+                }
+            }
+
+            // 如果没有找到任何当前里程碑风险，检查是否有已逾期的其他里程碑
+            if (milestoneRisks.isEmpty()) {
+                milestoneRisks.addAll(analyzeOverdueMilestones(project, milestones, now));
+            }
+
+        } catch (Exception e) {
+            log.warn("解析项目 {} 的里程碑数据失败: {}", project.getName(), e.getMessage());
+        }
+
+        return milestoneRisks;
+    }
+
+    /**
+     * 分析逾期的里程碑（当没有当前进行中的里程碑时）
+     */
+    private List<WorkRecommendationDTO.RecommendationItem> analyzeOverdueMilestones(Project project, 
+            List<java.util.Map<String, Object>> milestones, LocalDateTime now) {
+        List<WorkRecommendationDTO.RecommendationItem> overdueMilestones = new ArrayList<>();
+
+        for (java.util.Map<String, Object> milestone : milestones) {
+            String name = (String) milestone.get("name");
+            String status = (String) milestone.get("status");
+            String dueDateStr = (String) milestone.get("dueDate");
+
+            // 只分析未完成且有截止日期的里程碑
+            if (!"COMPLETED".equals(status) && dueDateStr != null && !dueDateStr.trim().isEmpty()) {
+                try {
+                    java.time.LocalDate dueDate = java.time.LocalDate.parse(dueDateStr);
+                    LocalDateTime dueDatetime = dueDate.atTime(23, 59, 59);
+                    long daysUntilMilestone = ChronoUnit.DAYS.between(now, dueDatetime);
+
+                    if (daysUntilMilestone < 0) {
+                        // 发现逾期里程碑
+                        WorkRecommendationDTO.RecommendationItem item = new WorkRecommendationDTO.RecommendationItem();
+                        item.setId(UUID.randomUUID().toString());
+                        item.setType("RISK");
+                        item.setTitle(String.format("[逾期%d天] %s - 里程碑逾期", 
+                                Math.abs(daysUntilMilestone), project.getName()));
+                        item.setDescription(String.format("里程碑「%s」已逾期 %d 天，需要重新规划",
+                                name, Math.abs(daysUntilMilestone)));
+                        item.setProjectId(project.getId());
+                        item.setPriority("HIGH");
+                        item.setActionType("VIEW_PROJECT");
+                        item.setCreateTime(LocalDateTime.now());
+                        overdueMilestones.add(item);
+                    }
+                } catch (Exception e) {
+                    log.warn("解析逾期里程碑日期失败: {}, 日期字符串: {}", name, dueDateStr, e);
+                }
+            }
+        }
+
+        return overdueMilestones;
     }
 
     /**

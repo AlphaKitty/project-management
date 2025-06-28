@@ -392,7 +392,7 @@ const formRules = {
 // 表格列配置
 const columns = computed(() => {
     const baseColumns = [
-        { title: '任务标题', dataIndex: 'title', key: 'title', slotName: 'title', width: 200 },
+        { title: '任务标题', dataIndex: 'title', key: 'title', slotName: 'title', width: 150 },
         { title: '描述', dataIndex: 'description', key: 'description', slotName: 'description', width: 120, align: 'center' },
         { title: '优先级', dataIndex: 'priority', key: 'priority', slotName: 'priority', align: 'center' },
         { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', align: 'center' },
@@ -631,6 +631,9 @@ const toggleTaskStatus = async (todo: Todo) => {
     try {
         await todoStore.updateStatus(todo.id, newStatus)
         Message.success('任务状态更新成功')
+        
+        // 重新获取任务列表以确保数据实时更新
+        await todoStore.fetchTodos()
     } catch (error) {
         Message.error('任务状态更新失败')
     }

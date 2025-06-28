@@ -637,8 +637,8 @@ public class ReportServiceImpl extends ServiceImpl<ReportMapper, Report> impleme
             milestoneProgress = project.getProgress() != null ? project.getProgress() : 0;
         }
 
-        status.append("当前里程碑").append(currentMilestone)
-                .append("，当前里程碑进度").append(String.format("%.0f", milestoneProgress)).append("%");
+        status.append("当前里程碑：").append(currentMilestone)
+                .append("，当前里程碑进度：").append(String.format("%.0f", milestoneProgress)).append("%");
 
         // 2. 统计待办任务数量
         List<Todo> projectCurrentTodos = currentTodos.stream()

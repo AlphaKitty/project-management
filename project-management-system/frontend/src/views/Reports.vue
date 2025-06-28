@@ -169,6 +169,7 @@ import { useReportStore } from '@/stores/reports'
 import { useProjectStore } from '@/stores/projects'
 import type { Report, ReportDTO } from '@/types'
 import { marked } from 'marked'
+import { copyToClipboard, copyElementText } from '@/utils/clipboard'
 
 // Store
 const reportStore = useReportStore()
@@ -339,21 +340,34 @@ const handleGenerate = async () => {
   }
 }
 
-function copyReportRaw() {
-  if (currentReport.value && currentReport.value.content) {
-    navigator.clipboard.writeText(currentReport.value.content).then(() => {
-      Message.success('原始Markdown已复制到剪贴板')
-    })
+async function copyReportRaw() {
+  if (!currentReport.value?.content) {
+    Message.warning('没有可复制的内容')
+    return
+  }
+
+  try {
+    await copyToClipboard(currentReport.value.content)
+    Message.success('原始Markdown已复制到剪贴板')
+  } catch (error) {
+    console.error('复制失败:', error)
+    Message.error(error instanceof Error ? error.message : '复制失败')
   }
 }
 
-function copyReportContent() {
+async function copyReportContent() {
   const el = reportContent.value
-  if (el) {
-    const text = el.innerText || el.textContent || ''
-    navigator.clipboard.writeText(text).then(() => {
-      Message.success('报告内容已复制到剪贴板')
-    })
+  if (!el) {
+    Message.warning('报告内容不存在')
+    return
+  }
+
+  try {
+    await copyElementText(el)
+    Message.success('报告内容已复制到剪贴板')
+  } catch (error) {
+    console.error('复制失败:', error)
+    Message.error(error instanceof Error ? error.message : '复制失败')
   }
 }
 
@@ -416,20 +430,20 @@ onUnmounted(() => {
 
 .report-content h3 {
   margin: 0 0 16px 0;
-  color: #262626;
+  color: var(--text-color);
   font-size: 16px;
   font-weight: 500;
 }
 
 .content-preview {
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--card-bg-color);
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   line-height: 1.7;
   white-space: normal;
   font-size: 15px;
-  color: #1d2129;
+  color: var(--text-color);
 }
 
 /* Markdown优化样式 */
@@ -439,18 +453,18 @@ onUnmounted(() => {
 .content-preview h4 {
   font-weight: 700;
   margin: 18px 0 10px 0;
-  color: #1765ad;
+  color: var(--primary-color);
 }
 
 .content-preview h1 {
   font-size: 2em;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--border-color);
   padding-bottom: 6px;
 }
 
 .content-preview h2 {
   font-size: 1.5em;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 4px;
 }
 
@@ -474,17 +488,17 @@ onUnmounted(() => {
 }
 
 .content-preview blockquote {
-  border-left: 4px solid #b5c7e3;
-  background: #f4f8fb;
-  color: #666;
+  border-left: 4px solid var(--primary-color);
+  background: var(--card-hover-bg);
+  color: var(--text-muted);
   margin: 12px 0;
   padding: 8px 16px;
   border-radius: 4px;
 }
 
 .content-preview pre {
-  background: #23272e;
-  color: #fff;
+  background: var(--color-neutral-8);
+  color: var(--color-neutral-1);
   border-radius: 6px;
   padding: 12px;
   overflow-x: auto;
@@ -493,8 +507,8 @@ onUnmounted(() => {
 }
 
 .content-preview code {
-  background: #f4f4f4;
-  color: #c7254e;
+  background: var(--color-neutral-2);
+  color: var(--color-danger-6);
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 14px;
@@ -508,22 +522,22 @@ onUnmounted(() => {
 
 .content-preview th,
 .content-preview td {
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   padding: 8px 12px;
   text-align: left;
 }
 
 .content-preview th {
-  background: #f4f8fb;
+  background: var(--card-hover-bg);
   font-weight: 600;
 }
 
 .content-preview tr:nth-child(even) {
-  background: #fafbfc;
+  background: var(--card-hover-bg);
 }
 
 .content-preview a {
-  color: #1765ad;
+  color: var(--primary-color);
   text-decoration: underline;
 }
 </style>

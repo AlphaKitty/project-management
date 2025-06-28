@@ -623,7 +623,7 @@ const handleSubmit = async () => {
 
     // 如果项目概览模态框是打开的，重新加载数据
     if (overviewModalVisible.value) {
-      await projectStore.fetchProjectOverview()
+      await projectStore.fetchProjectOverview(true)
     }
   } catch (error) {
     Message.error(isEdit.value ? '项目更新失败' : '项目创建失败')
@@ -638,7 +638,7 @@ const handleCancel = () => {
 // 显示项目概览模态框
 const showOverviewModal = async () => {
   try {
-    await projectStore.fetchProjectOverview()
+    await projectStore.fetchProjectOverview(true)
     overviewModalVisible.value = true
   } catch (error) {
     Message.error('获取项目概览失败')
@@ -807,8 +807,8 @@ const updateWorkPlans = async () => {
     })
 
     if (response.ok) {
-      // 重新加载项目概览数据
-      await projectStore.fetchProjectOverview()
+      // 重新加载项目概览数据，强制刷新缓存
+      await projectStore.fetchProjectOverview(true)
       const modeText = weeklyModeEnabled.value ? '周' : '双周'
       Message.success(`${modeText}工作计划更新成功`)
     } else {
@@ -834,14 +834,14 @@ const exportToExcel = async () => {
 
     // 定义列
     worksheet.columns = [
-      { header: '项目名称', key: 'name', width: 25 },
-      { header: '状态', key: 'status', width: 12 },
-      { header: '进度', key: 'progress', width: 10 },
+      { header: '项目名称', key: 'name', width: 22 },
+      { header: '状态', key: 'status', width: 8 },
+      { header: '进度', key: 'progress', width: 8 },
       { header: '责任人', key: 'assignee', width: 12 },
-      { header: '里程碑', key: 'milestones', width: 60 },
-      { header: '本周工作', key: 'thisWeek', width: 40 },
-      { header: '下周计划', key: 'nextWeek', width: 40 },
-      { header: '待办事项', key: 'todos', width: 50 },
+      { header: '里程碑', key: 'milestones', width: 30 },
+      { header: '本周工作', key: 'thisWeek', width: 60 },
+      { header: '下周计划', key: 'nextWeek', width: 60 },
+      // { header: '待办事项', key: 'todos', width: 50 },
       { header: '风险', key: 'risk', width: 15 }
     ]
 
@@ -849,7 +849,7 @@ const exportToExcel = async () => {
     const headerRow = worksheet.getRow(1)
     headerRow.font = {
       name: '微软雅黑',
-      size: 16,
+      size: 12,
       bold: true,
       color: { argb: 'FFFFFFFF' }
     }
@@ -860,17 +860,17 @@ const exportToExcel = async () => {
     }
     headerRow.alignment = {
       vertical: 'middle',
-      horizontal: 'center'
+      horizontal: 'left'
     }
-    headerRow.height = 40
+    headerRow.height = 30
 
     // 添加表头边框
     headerRow.eachCell((cell) => {
       cell.border = {
-        top: { style: 'thick', color: { argb: 'FF000000' } },
-        bottom: { style: 'thick', color: { argb: 'FF000000' } },
-        left: { style: 'thick', color: { argb: 'FF000000' } },
-        right: { style: 'thick', color: { argb: 'FF000000' } }
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
       }
     })
 
@@ -934,7 +934,7 @@ const exportToExcel = async () => {
       // 设置数据行基础样式
       row.font = { name: '微软雅黑', size: 10, color: { argb: 'FF333333' } }
       row.alignment = {
-        vertical: 'top',
+        vertical: 'middle',
         horizontal: 'left',
         wrapText: true
       }
@@ -954,20 +954,20 @@ const exportToExcel = async () => {
       // 添加边框
       row.eachCell((cell) => {
         cell.border = {
-          top: { style: 'thick', color: { argb: 'FF000000' } },
-          bottom: { style: 'thick', color: { argb: 'FF000000' } },
-          left: { style: 'thick', color: { argb: 'FF000000' } },
-          right: { style: 'thick', color: { argb: 'FF000000' } }
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } }
         }
       })
 
       // 项目名称列居中
       const nameCell = row.getCell(1)
-      nameCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+      nameCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true }
 
       // 状态列特殊颜色和居中
       const statusCell = row.getCell(2)
-      statusCell.alignment = { vertical: 'middle', horizontal: 'center' }
+      statusCell.alignment = { vertical: 'middle', horizontal: 'left' }
       const statusValue = rowData.status
       if (statusValue === '进行中') {
         statusCell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF52C41A' } }
@@ -981,7 +981,7 @@ const exportToExcel = async () => {
 
       // 进度列样式和居中
       const progressCell = row.getCell(3)
-      progressCell.alignment = { vertical: 'middle', horizontal: 'center' }
+      progressCell.alignment = { vertical: 'middle', horizontal: 'left' }
       progressCell.font = { name: '微软雅黑', size: 10, bold: true, color: { argb: 'FF1890FF' } }
 
       // 责任人列居中
@@ -990,18 +990,18 @@ const exportToExcel = async () => {
 
       // 里程碑列居中
       const milestoneCell = row.getCell(5)
-      milestoneCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+      milestoneCell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true }
 
       // 风险列居中
       const riskCell = row.getCell(9)
-      riskCell.alignment = { vertical: 'middle', horizontal: 'center' }
+      riskCell.alignment = { vertical: 'middle', horizontal: 'left' }
     })
 
     // 冻结表头
     worksheet.views = [{ state: 'frozen', ySplit: 1 }]
 
     // 添加自动筛选
-    worksheet.autoFilter = 'A1:I1'
+    // worksheet.autoFilter = 'A1:I1'
 
     // 生成文件
     const fileName = `项目概览_${dayjs().format('YYYY-MM-DD_HH-mm-ss')}.xlsx`
@@ -1056,7 +1056,7 @@ const handleTodoSubmit = async () => {
     // 如果项目概览模态框是打开的，重新加载数据
     if (overviewModalVisible.value) {
       await Promise.all([
-        projectStore.fetchProjectOverview(),
+        projectStore.fetchProjectOverview(true),
         todoStore.fetchTodos()
       ])
     }
@@ -1091,8 +1091,8 @@ const saveTodoNote = async (todo: any) => {
       description: editingNoteContent.value
     })
     
-    // 更新本地数据
-    todo.description = editingNoteContent.value
+    // 重新获取任务列表以确保数据实时更新
+    await todoStore.fetchTodos()
     
     // 退出编辑模式
     isEditingNote.value[todo.id] = false
