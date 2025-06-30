@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -101,5 +102,19 @@ public class OperationLogServiceImpl implements OperationLogService {
 
         log.info("清理过期操作日志完成，删除{}条记录", deletedCount);
         return deletedCount;
+    }
+
+    @Override
+    public List<OperationLog> getProjectRelatedLogs(Long projectId, Integer limit) {
+        if (limit == null || limit <= 0) {
+            limit = 100; // 默认最多返回100条
+        }
+        
+        try {
+            return operationLogMapper.selectProjectRelatedLogs(projectId, limit);
+        } catch (Exception e) {
+            log.error("获取项目相关操作日志失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
     }
 }

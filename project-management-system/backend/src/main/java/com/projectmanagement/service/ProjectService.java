@@ -5,6 +5,7 @@ import com.projectmanagement.dto.ProjectDTO;
 import com.projectmanagement.entity.Project;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 项目服务接口
@@ -80,4 +81,19 @@ public interface ProjectService extends IService<Project> {
      * 更新所有项目的工作计划（指定天数）
      */
     void updateAllProjectWorkPlans(Integer days);
+
+    /**
+     * 获取项目时间轴
+     */
+
+    
+    /**
+     * 获取项目甘特图数据
+     */
+    Map<String, Object> getProjectGanttData(Long projectId);
+    
+    /**
+     * 获取用户相关的所有项目甘特图数据
+     */
+    Map<String, Object> getUserProjectsGanttData(Long userId);
 }

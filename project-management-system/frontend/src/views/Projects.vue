@@ -20,6 +20,11 @@
         <template #icon><icon-eye /></template>
         项目概览
       </a-button>
+      
+      <a-button style="margin-left: 10px;" type="primary" @click="showGanttModal">
+        <template #icon><icon-calendar /></template>
+        甘特图
+      </a-button>
     </div>
 
     <!-- 项目列表 -->
@@ -337,17 +342,190 @@
         </a-table>
       </div>
     </a-modal>
+
+
+
+    <!-- 甘特图模态框 -->
+    <a-modal v-model:visible="ganttModalVisible" title="全局项目甘特图" width="95%" :footer="false">
+      <div class="gantt-container">
+        <div class="gantt-actions">
+          <div class="gantt-info">
+            <span class="info-label">📊 当前用户相关的所有项目甘特图</span>
+            <a-button @click="loadUserProjectsGantt" :loading="ganttLoading" size="small">
+              <template #icon><icon-refresh /></template>
+              刷新数据
+            </a-button>
+          </div>
+        </div>
+        
+        <a-spin :loading="ganttLoading" style="width: 100%;">
+          <div v-if="!ganttData.timeRange" class="empty-gantt">
+            <icon-calendar style="font-size: 48px; color: #c0c4cc;" />
+            <p>暂无项目数据</p>
+            <p style="font-size: 12px; color: #999; margin-top: 8px;">
+              调试信息: timeRange={{ !!ganttData.timeRange }}, 
+              taskTracks={{ ganttData.taskTracks?.length || 0 }}个项目
+            </p>
+          </div>
+          
+          <div v-else class="gantt-chart">
+            <!-- 项目信息头部 -->
+            <div class="gantt-header">
+              <div class="gantt-header-content">
+                <div class="gantt-header-info">
+                  <h3>全局项目甘特图</h3>
+                  <div class="project-meta">
+                    <span>项目数量: {{ ganttData.taskTracks?.length || 0 }}</span>
+                    <span>时间范围: {{ ganttData.timeRange?.startDate }} ~ {{ ganttData.timeRange?.endDate }}</span>
+                  </div>
+                </div>
+                
+                <!-- 🔧 状态图例移到header行尾 -->
+                <div class="gantt-legend-header">
+                  <h4>状态图例</h4>
+                  <div class="legend-items-inline">
+                    <div class="legend-item">
+                      <div class="legend-bar" style="background: #52c41a;"></div>
+                      <span>按时完成</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-bar" style="background: #1890ff;"></div>
+                      <span>正常进行</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-bar" style="background: #fa8c16;"></div>
+                      <span>轻微延期</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-bar" style="background: #722ed1;"></div>
+                      <span>即将到期</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-bar" style="background: #f5222d;"></div>
+                      <span>严重延期</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-bar" style="background: #a8071a;"></div>
+                      <span>已逾期</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 🔧 重新设计甘特图布局 - 类似Excel的冻结行列 -->
+            <div class="gantt-layout">
+              <!-- 1. 顶部时间轴区域 -->
+              <div class="gantt-header-area">
+                <!-- 左上角固定区域 -->
+                <div class="corner-cell">项目名称</div>
+                <!-- 时间轴滚动区域 -->
+                <div class="time-axis-scroll" ref="timeAxisRef">
+                  <div class="time-scale">
+                    <div 
+                      v-for="(date, index) in generateTimeScale(ganttData.timeRange)" 
+                      :key="index"
+                      class="time-unit"
+                      :class="{ 'current-time': isCurrentDate(date) }"
+                    >
+                      {{ formatDateLabel(date) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+                            <!-- 2. 主体内容区域 -->
+              <div class="gantt-body-area" v-if="ganttData.taskTracks && ganttData.taskTracks.length > 0">
+                <!-- 🔧 左侧固定项目名称列（真正冻结） -->
+                <div class="track-labels-frozen" ref="labelsRef" @scroll="onLabelsScroll">
+                  <div 
+                    v-for="track in ganttData.taskTracks" 
+                    :key="track.id"
+                    class="track-label-cell"
+                    :style="{ height: getTrackHeight(track) + 'px' }"
+                  >
+                    {{ track.name }}
+                  </div>
+                </div>
+                
+                <!-- 🔧 右侧可滚动内容区域 -->
+                <div class="gantt-content-scroll" ref="contentRef" @scroll="onContentScroll">
+                  <div class="tracks-container">
+                      <div 
+                        v-for="track in ganttData.taskTracks" 
+                        :key="track.id"
+                        class="project-track-content"
+                        :style="{ height: getTrackHeight(track) + 'px' }"
+                      >
+                        <!-- 🔧 里程碑水平连线（节点首尾相连的时间轴） -->
+                        <div class="milestone-timeline-horizontal">
+                          <div 
+                            v-for="(milestone, index) in track.milestones" 
+                            :key="milestone.id"
+                            class="milestone-connection"
+                            :style="getMilestoneConnectionStyle(milestone, track.milestones[index + 1], ganttData.timeRange, index, track)"
+                            :class="{ 'connection-completed': isMilestoneCompleted(milestone) }"
+                          ></div>
+                        </div>
+                        
+                        <!-- 项目里程碑 -->
+                        <div 
+                          v-for="milestone in track.milestones" 
+                          :key="milestone.id"
+                          class="milestone-marker"
+                          :style="getMilestonePosition(milestone, ganttData.timeRange)"
+                          :title="milestone.name + ' - ' + milestone.dueDate"
+                        >
+                          <div class="milestone-diamond" :style="{ backgroundColor: milestone.color }"></div>
+                          <div class="milestone-label">{{ milestone.name }}</div>
+                        </div>
+                        
+                        <!-- 项目任务 -->
+                        <div 
+                          v-for="(task, taskIndex) in track.tasks" 
+                          :key="task.id"
+                          class="task-bar"
+                          :style="getTaskBarStyle(task, ganttData.timeRange, taskIndex)"
+                          :title="getTaskTooltip(task)"
+                        >
+                          <div class="task-content">
+                            <span class="task-title">{{ task.title }}</span>
+                            <span v-if="task.progress < 100" class="task-progress">{{ task.progress }}%</span>
+                          </div>
+                          <div 
+                            class="task-progress-fill" 
+                            :style="{ width: task.progress + '%', backgroundColor: task.color }"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 无项目数据提示 -->
+              <div v-if="ganttData.taskTracks && ganttData.taskTracks.length === 0" class="no-projects-hint" style="text-align: center; padding: 40px; color: #999;">
+                <p>当前用户没有相关项目数据</p>
+                <p style="font-size: 12px; margin-top: 8px;">
+                  taskTracks: {{ ganttData.taskTracks?.length || 0 }}
+                </p>
+              </div>
+          </div>
+        </a-spin>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Message, Modal } from '@arco-design/web-vue'
-import { IconPlus, IconEye, IconDownload, IconRefresh, IconEdit } from '@arco-design/web-vue/es/icon'
+import { IconPlus, IconEye, IconDownload, IconRefresh, IconEdit, IconClockCircle } from '@arco-design/web-vue/es/icon'
 import * as XLSX from 'xlsx'
 import { useProjectStore } from '@/stores/projects'
 import { useUserStore } from '@/stores/user'
 import { useTodoStore } from '@/stores/todos'
+import { projectApi } from '@/api/projects'
 import { StatusLabels, StatusColors } from '@/types'
 import type { Project, ProjectDTO, User, Milestone, TodoDTO } from '@/types'
 import dayjs from 'dayjs'
@@ -361,6 +539,12 @@ const todoStore = useTodoStore()
 const modalVisible = ref(false)
 const overviewModalVisible = ref(false)
 const todoModalVisible = ref(false)
+const selectedProject = ref<number | undefined>()
+
+// 甘特图相关数据
+const ganttModalVisible = ref(false)
+const ganttData = ref<any>({})
+const ganttLoading = ref(false)
 const isEdit = ref(false)
 const workUpdateLoading = ref(false)
 const currentProject = ref<Project | null>(null)
@@ -643,6 +827,155 @@ const showOverviewModal = async () => {
   } catch (error) {
     Message.error('获取项目概览失败')
   }
+}
+
+
+
+// 显示甘特图模态框
+const showGanttModal = async () => {
+  ganttData.value = {}
+  ganttModalVisible.value = true
+  // 自动加载用户全局甘特图数据
+  await loadUserProjectsGantt()
+}
+
+// 加载项目甘特图数据
+const loadProjectGantt = async (projectId: number) => {
+  if (!projectId) return
+  
+  try {
+    ganttLoading.value = true
+    const response = await projectApi.getProjectGantt(projectId)
+    ganttData.value = response.data || {}
+  } catch (error) {
+    console.error('获取项目甘特图数据失败:', error)
+    Message.error('获取甘特图数据失败')
+  } finally {
+    ganttLoading.value = false
+  }
+}
+
+// 加载用户全局甘特图数据
+const loadUserProjectsGantt = async () => {
+  try {
+    ganttLoading.value = true
+    const response = await projectApi.getUserProjectsGantt()
+    console.log('🔍 甘特图接口返回数据:', response.data)
+    ganttData.value = response.data || {}
+    console.log('🔍 设置后的ganttData.value:', ganttData.value)
+    console.log('🔍 timeRange存在:', !!ganttData.value.timeRange)
+    console.log('🔍 taskTracks存在:', !!ganttData.value.taskTracks)
+    console.log('🔍 taskTracks长度:', ganttData.value.taskTracks?.length || 0)
+  } catch (error) {
+    console.error('获取用户甘特图数据失败:', error)
+    Message.error('获取甘特图数据失败')
+  } finally {
+    ganttLoading.value = false
+  }
+}
+
+
+
+// 获取优先级文本
+const getPriorityText = (priority: string) => {
+  const priorityMap: Record<string, string> = {
+    'HIGH': '高',
+    'URGENT': '紧急',
+    'MEDIUM': '中',
+    'LOW': '低'
+  }
+  return priorityMap[priority] || priority
+}
+
+// 甘特图相关计算方法
+
+// 生成时间刻度
+const generateTimeScale = (timeRange: any) => {
+  if (!timeRange) return []
+  
+  const startDate = dayjs(timeRange.startDate)
+  const endDate = dayjs(timeRange.endDate)
+  const dates = []
+  
+  let currentDate = startDate
+  while (currentDate.isBefore(endDate) || currentDate.isSame(endDate)) {
+    dates.push(currentDate.format('YYYY-MM-DD'))
+    currentDate = currentDate.add(1, 'week') // 按周显示
+  }
+  
+  return dates
+}
+
+// 判断是否为当前日期
+const isCurrentDate = (date: string) => {
+  return dayjs(date).isSame(dayjs(), 'week')
+}
+
+// 格式化日期标签
+const formatDateLabel = (date: string) => {
+  return dayjs(date).format('MM/DD')
+}
+
+// 获取里程碑位置
+const getMilestonePosition = (milestone: any, timeRange: any) => {
+  const startDate = dayjs(timeRange.startDate)
+  const endDate = dayjs(timeRange.endDate)
+  const milestoneDate = dayjs(milestone.dueDate)
+  
+  const totalDays = endDate.diff(startDate, 'day')
+  const offsetDays = milestoneDate.diff(startDate, 'day')
+  const leftPercent = (offsetDays / totalDays) * 100
+  
+  return {
+    left: `${Math.max(0, Math.min(100, leftPercent))}%`,
+    position: 'absolute' as const
+  }
+}
+
+// 获取任务条样式（优化版 - 避免重叠）
+const getTaskBarStyle = (task: any, timeRange: any, taskIndex: number = 0) => {
+  const startDate = dayjs(timeRange.startDate)
+  const endDate = dayjs(timeRange.endDate)
+  const taskStartDate = dayjs(task.startDate)
+  const taskEndDate = dayjs(task.endDate)
+  
+  const totalDays = endDate.diff(startDate, 'day')
+  const taskStartOffset = taskStartDate.diff(startDate, 'day')
+  const taskDuration = taskEndDate.diff(taskStartDate, 'day')
+  
+  const leftPercent = (taskStartOffset / totalDays) * 100
+  const widthPercent = (taskDuration / totalDays) * 100
+  
+  // 🎯 关键优化：为每个任务分配不同的垂直位置，避免重叠
+  const taskHeight = 22 // 任务条高度
+  const taskSpacing = 4 // 任务间距
+  const baseTopOffset = 50 // 🔧 里程碑区域基础高度，与getTrackHeight保持一致
+  const topPosition = baseTopOffset + (taskIndex * (taskHeight + taskSpacing))
+  
+  return {
+    left: `${Math.max(0, leftPercent)}%`,
+    width: `${Math.max(2, widthPercent)}%`,
+    top: `${topPosition}px`, // 🚀 每个任务占据不同的行
+    backgroundColor: task.color + '20', // 半透明背景
+    border: `2px solid ${task.color}`,
+    position: 'absolute' as const,
+    height: `${taskHeight}px`,
+    borderRadius: '4px',
+    overflow: 'hidden' as const,
+    zIndex: 5 + taskIndex // 层级递增，避免覆盖
+  }
+}
+
+// 获取任务提示信息
+const getTaskTooltip = (task: any) => {
+  let assigneeName = '未分配'
+  if (task.assignee) {
+    assigneeName = task.assignee.nickname || task.assignee.username || '未知'
+  } else if (task.assigneeId) {
+    assigneeName = `用户${task.assigneeId}`
+  }
+  
+  return `${task.title}\n状态: ${task.statusText}\n时间: ${task.startDate} ~ ${task.endDate}\n进度: ${task.progress}%\n处理人: ${assigneeName}`
 }
 
 // 里程碑管理方法
@@ -1107,6 +1440,111 @@ const saveTodoNote = async (todo: any) => {
   }
 }
 
+// 🔧 新增甘特图滚动同步方法
+const timeAxisRef = ref<HTMLElement>()
+const contentRef = ref<HTMLElement>()
+const labelsRef = ref<HTMLElement>()
+const isScrollSyncing = ref(false)
+
+// 🔧 内容区域滚动时同步时间轴和项目名称列
+const onContentScroll = (event: Event) => {
+  if (isScrollSyncing.value) return
+  
+  const target = event.target as HTMLElement
+  isScrollSyncing.value = true
+  
+  // 同步时间轴的横向滚动
+  if (timeAxisRef.value) {
+    timeAxisRef.value.scrollLeft = target.scrollLeft
+  }
+  // 同步项目名称列的纵向滚动
+  if (labelsRef.value) {
+    labelsRef.value.scrollTop = target.scrollTop
+  }
+  
+  // 延迟重置标记
+  setTimeout(() => {
+    isScrollSyncing.value = false
+  }, 10)
+}
+
+// 🔧 新增里程碑水平连线方法（节点首尾相连，支持动态高度）
+const getMilestoneConnectionStyle = (currentMilestone: any, nextMilestone: any, timeRange: any, index: number, track: any) => {
+  if (!timeRange || !currentMilestone.dueDate) return { display: 'none' }
+  
+  const startDate = new Date(timeRange.startDate)
+  const endDate = new Date(timeRange.endDate)
+  const currentDate = new Date(currentMilestone.dueDate)
+  
+  const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  const currentDay = Math.ceil((currentDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  
+  if (currentDay < 0 || currentDay > totalDays) return { display: 'none' }
+  
+  let leftPercent = (currentDay / totalDays) * 100
+  let widthPercent = 0
+  
+  // 如果有下一个里程碑，连接到下一个
+  if (nextMilestone && nextMilestone.dueDate) {
+    const nextDate = new Date(nextMilestone.dueDate)
+    const nextDay = Math.ceil((nextDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (nextDay >= 0 && nextDay <= totalDays) {
+      widthPercent = ((nextDay - currentDay) / totalDays) * 100
+    }
+  } else {
+    // 最后一个里程碑，如果没有下一个里程碑但有任务，延伸到最后一个任务
+    if (track && track.tasks && track.tasks.length > 0) {
+      // 不延伸，避免连线过长
+      widthPercent = 0
+    }
+  }
+  
+  return {
+    left: `${leftPercent}%`,
+    width: `${Math.max(0, widthPercent)}%`,
+    top: '8px', // 水平线条在上方
+    height: '3px',
+    position: 'absolute' as const,
+    zIndex: 3
+  }
+}
+
+// 判断里程碑是否已完成
+const isMilestoneCompleted = (milestone: any) => {
+  const today = new Date()
+  const milestoneDate = new Date(milestone.dueDate)
+  return milestoneDate <= today
+}
+
+// 🔧 项目名称列滚动时同步内容区域
+const onLabelsScroll = (event: Event) => {
+  if (isScrollSyncing.value) return
+  
+  const target = event.target as HTMLElement
+  isScrollSyncing.value = true
+  
+  if (contentRef.value) {
+    contentRef.value.scrollTop = target.scrollTop
+  }
+  
+  // 延迟重置标记
+  setTimeout(() => {
+    isScrollSyncing.value = false
+  }, 10)
+}
+
+// 🔧 动态计算轨道高度（基于待办数量）
+const getTrackHeight = (track: any) => {
+  const baseMilestoneHeight = 50 // 里程碑区域基础高度
+  const taskHeight = 26 // 每个任务的高度（包含间距）
+  const taskCount = track.tasks ? track.tasks.length : 0
+  const minHeight = 160 // 最小高度
+  
+  const calculatedHeight = baseMilestoneHeight + (taskCount * taskHeight)
+  return Math.max(minHeight, calculatedHeight)
+}
+
 // 页面加载时获取数据
 onMounted(async () => {
   console.log('📋 Projects页面开始挂载')
@@ -1526,5 +1964,431 @@ onUnmounted(() => {
   text-align: center;
   padding: 20px;
   color: var(--text-muted);
+}
+
+/* 🔧 重新设计甘特图样式 - 类似Excel的冻结行列布局 */
+.gantt-container {
+  height: 80vh; /* 固定高度 */
+  overflow: hidden; /* 隐藏外层滚动 */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* 为绝对定位做准备 */
+}
+
+/* 甘特图整体布局 */
+.gantt-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  height: 100%; /* 确保填满父容器 */
+}
+
+/* 顶部时间轴区域 */
+.gantt-header-area {
+  display: flex;
+  background: var(--bg-color-2);
+  border: 1px solid var(--border-color);
+  border-radius: 6px 6px 0 0;
+  overflow: hidden;
+  z-index: 10; /* 确保时间轴在内容之上 */
+  position: absolute; /* 绝对定位固定 */
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px; /* 固定高度 */
+}
+
+/* 左上角固定区域 */
+.corner-cell {
+  width: 150px;
+  min-width: 150px;
+  padding: 8px 12px;
+  background: var(--primary-color);
+  color: white;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border-color);
+  font-size: 13px;
+  height: 56px; /* 与时间轴区域高度保持一致 */
+  box-sizing: border-box; /* 包含padding在高度内 */
+  z-index: 15; /* 确保在最上层 */
+}
+
+/* 时间轴滚动区域 */
+.time-axis-scroll {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* 隐藏滚动条但保持滚动功能 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.time-axis-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 时间刻度容器 */
+.time-scale {
+  display: flex;
+  min-width: 4800px; /* 扩大两倍 */
+  height: 56px; /* 与时间轴区域高度保持一致 */
+}
+
+.gantt-container .arco-spin {
+  width: 100%;
+}
+
+.gantt-actions {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--card-bg-color);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+.gantt-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.info-label {
+  font-weight: 600;
+  color: var(--text-color-1);
+  font-size: 14px;
+}
+
+.empty-gantt {
+  text-align: center;
+  padding: 60px 0;
+  color: var(--text-color-3);
+}
+
+.gantt-chart {
+  background: var(--card-bg-color);
+  border-radius: 8px;
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* 允许子元素缩小 */
+  position: relative; /* 为子元素绝对定位提供参考 */
+  height: calc(80vh - 120px); /* 给定固定高度 */
+}
+
+/* 🔧 重新设计gantt-header支持水平布局 */
+.gantt-header {
+  margin-bottom: 8px; /* 减少边距 */
+  padding: 12px; /* 减少内边距 */
+  background: var(--bg-color-2);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+.gantt-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.gantt-header-info {
+  flex: 1;
+}
+
+.gantt-header-info h3 {
+  margin: 0 0 8px 0;
+  color: var(--text-color-1);
+  font-size: 18px;
+}
+
+.project-meta {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  color: var(--text-color-2);
+  flex-wrap: wrap;
+}
+
+/* 🔧 header中的图例样式 */
+.gantt-legend-header {
+  flex-shrink: 0;
+  min-width: 400px;
+}
+
+.gantt-legend-header h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-color-1);
+  font-weight: 600;
+  text-align: center;
+}
+
+.legend-items-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.legend-items-inline .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-color-2);
+  padding: 2px 6px;
+  background: var(--bg-color-1);
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+}
+
+/* 🔧 重新设计主体内容区域 - 真正的冻结列布局 */
+.gantt-body-area {
+  display: flex;
+  position: absolute;
+  top: 56px; /* 时间轴高度 */
+  left: 0;
+  right: 0;
+  bottom: 0; /* 填满剩余空间 */
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background: var(--bg-color-1);
+  overflow: hidden; /* 保持隐藏，让内部元素处理滚动 */
+  z-index: 1; /* 确保内容在上层 */
+}
+
+/* 🔧 左侧固定项目名称列（真正冻结） */
+.track-labels-frozen {
+  width: 150px;
+  min-width: 150px;
+  background: var(--bg-color-2);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  z-index: 5; /* 调整层级，低于时间轴 */
+  height: 100%; /* 填满父容器高度 */
+}
+
+.track-label-cell {
+  /* height 通过 :style 动态设置 */
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: var(--text-color-1);
+  font-size: 13px;
+  background: var(--bg-color-2);
+  word-break: break-word;
+  line-height: 1.3;
+  /* 🔧 让文本垂直居中 */
+  justify-content: flex-start;
+  text-align: left;
+}
+
+/* 右侧内容滚动区域 */
+.gantt-content-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  height: 100%; /* 填满父容器高度 */
+}
+
+/* 轨道容器 */
+.tracks-container {
+  min-width: 4800px; /* 扩大两倍 */
+  position: relative;
+  min-height: 100%; /* 确保容器高度充足 */
+  height: fit-content; /* 自适应内容高度 */
+}
+
+/* 🔧 项目轨道内容 - 动态高度 */
+.project-track-content {
+  /* height 通过 :style 动态设置 */
+  border-bottom: 1px solid var(--border-color);
+  position: relative;
+  background: var(--bg-color-1);
+  min-height: 160px; /* 最小高度保证 */
+}
+
+/* 🔧 清理：移除不再使用的旧样式 */
+
+.time-unit {
+  flex: 1;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-color-2);
+  height: 56px; /* 与时间轴区域高度保持一致 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-color-1);
+  min-width: 0; /* 允许flex收缩 */
+}
+
+.time-unit.current-time {
+  background: linear-gradient(135deg, #1890ff20, #40a9ff20);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* 🔧 清理：移除不再使用的旧项目轨道样式 */
+
+/* 🔧 里程碑水平连线（节点首尾相连的时间轴） */
+.milestone-timeline-horizontal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* 不影响其他元素的交互 */
+  z-index: 1;
+}
+
+.milestone-connection {
+  position: absolute;
+  background: #d9d9d9; /* 默认灰色 - 未发生 */
+  opacity: 0.7;
+  transition: all 0.3s ease;
+  border-radius: 1px;
+}
+
+.milestone-connection.connection-completed {
+  background: #1890ff; /* 蓝色 - 已发生 */
+  opacity: 0.9;
+  box-shadow: 0 1px 3px rgba(24, 144, 255, 0.3);
+}
+
+.milestone-marker {
+  position: absolute;
+  top: 5px; /* 🔧 增加与时间线的间距，防止文字重叠 */
+  transform: translateY(0);
+  cursor: pointer;
+  z-index: 10;
+}
+
+.milestone-diamond {
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  border: 1px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.milestone-label {
+  position: absolute;
+  top: 15px; /* 🔧 增加间距，防止与时间线重叠 */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--text-color-2);
+  white-space: nowrap;
+  background: var(--bg-color-1);
+  padding: 1px 3px;
+  border-radius: 2px;
+  border: 1px solid var(--border-color);
+  z-index: 11;
+}
+
+.task-bar {
+  position: absolute;
+  /* top值由JavaScript动态计算，避免重叠 */
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  /* z-index由JavaScript动态计算 */
+}
+
+.task-bar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.task-content {
+  position: relative;
+  z-index: 2;
+  padding: 2px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.task-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-progress {
+  font-size: 10px;
+  color: rgba(255,255,255,0.9);
+}
+
+.task-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+/* 🔧 清理：移除不再使用的固定图例样式 */
+
+/* 兼容原有样式（如果有其他地方引用） */
+.gantt-legend {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--bg-color-2);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.gantt-legend h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-color-1);
+}
+
+.gantt-legend .legend-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.gantt-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-color-2);
+}
+
+.legend-bar {
+  width: 16px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 </style>

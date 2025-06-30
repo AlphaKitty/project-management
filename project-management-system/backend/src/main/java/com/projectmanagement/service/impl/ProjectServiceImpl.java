@@ -6,16 +6,23 @@ import com.projectmanagement.dto.ProjectDTO;
 import com.projectmanagement.entity.Project;
 import com.projectmanagement.entity.Todo;
 import com.projectmanagement.entity.User;
+import com.projectmanagement.entity.OperationLog;
 import com.projectmanagement.mapper.ProjectMapper;
 import com.projectmanagement.mapper.TodoMapper;
 import com.projectmanagement.mapper.UserMapper;
 import com.projectmanagement.service.ProjectService;
+import com.projectmanagement.service.UserService;
+import com.projectmanagement.service.TodoService;
+import com.projectmanagement.service.OperationLogService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +36,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  * 项目服务实现类
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> implements ProjectService {
@@ -37,6 +45,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
     private final UserMapper userMapper;
     private final TodoMapper todoMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final UserService userService;
+    private final TodoService todoService;
+    private final OperationLogService operationLogService;
 
     @Override
     public List<Project> getProjectList() {
@@ -876,5 +887,841 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
         }
 
         return combined.toString();
+    }
+
+
+    
+
+    
+
+    
+
+    
+    @Override
+    public Map<String, Object> getProjectGanttData(Long projectId) {
+        Map<String, Object> ganttData = new HashMap<>();
+        
+        try {
+            // 1. 获取项目基本信息
+            Project project = getProjectDetail(projectId);
+            if (project == null) {
+                return ganttData;
+            }
+            
+            // 2. 计算项目时间范围
+            Map<String, Object> timeRange = calculateProjectTimeRange(project, projectId);
+            ganttData.put("timeRange", timeRange);
+            
+            // 3. 获取里程碑数据
+            List<Map<String, Object>> milestones = extractMilestonesForGantt(project);
+            ganttData.put("milestones", milestones);
+            
+            // 4. 获取任务轨道数据
+            List<Map<String, Object>> taskTracks = buildTaskTracks(projectId, milestones);
+            ganttData.put("taskTracks", taskTracks);
+            
+            // 5. 项目基本信息
+            ganttData.put("projectInfo", buildProjectInfo(project));
+            
+        } catch (Exception e) {
+            log.error("获取项目甘特图数据失败", e);
+        }
+        
+        return ganttData;
+    }
+    
+    /**
+     * 计算项目时间范围
+     */
+    private Map<String, Object> calculateProjectTimeRange(Project project, Long projectId) {
+        LocalDate startDate = project.getCreateTime().toLocalDate();
+        LocalDate endDate = LocalDate.now().plusMonths(3); // 默认显示到3个月后
+        
+        try {
+            // 从里程碑中获取最晚日期
+            if (project.getMilestones() != null && !project.getMilestones().isEmpty()) {
+                TypeReference<List<Map<String, Object>>> typeRef = new TypeReference<List<Map<String, Object>>>() {};
+                List<Map<String, Object>> milestones = objectMapper.readValue(project.getMilestones(), typeRef);
+                
+                for (Map<String, Object> milestone : milestones) {
+                    String dueDateStr = (String) milestone.get("dueDate");
+                    if (dueDateStr != null && !dueDateStr.isEmpty()) {
+                        LocalDate dueDate = LocalDate.parse(dueDateStr);
+                        if (dueDate.isAfter(endDate)) {
+                            endDate = dueDate.plusWeeks(2); // 里程碑后再加2周缓冲
+                        }
+                    }
+                }
+            }
+            
+            // 从待办任务中获取最晚日期
+            List<Todo> projectTodos = todoService.getCompletedTodosByProject(projectId);
+            for (Todo todo : projectTodos) {
+                if (todo.getDueDate() != null && todo.getDueDate().isAfter(endDate)) {
+                    endDate = todo.getDueDate().plusWeeks(1);
+                }
+            }
+            
+        } catch (Exception e) {
+            log.warn("计算项目时间范围时发生错误: {}", e.getMessage());
+        }
+        
+        Map<String, Object> timeRange = new HashMap<>();
+        timeRange.put("startDate", startDate.toString());
+        timeRange.put("endDate", endDate.toString());
+        timeRange.put("totalDays", ChronoUnit.DAYS.between(startDate, endDate));
+        timeRange.put("currentDate", LocalDate.now().toString());
+        
+        return timeRange;
+    }
+    
+    /**
+     * 提取里程碑数据用于甘特图
+     */
+    private List<Map<String, Object>> extractMilestonesForGantt(Project project) {
+        List<Map<String, Object>> milestones = new ArrayList<>();
+        
+        if (project.getMilestones() == null || project.getMilestones().isEmpty()) {
+            return milestones;
+        }
+        
+        try {
+            TypeReference<List<Map<String, Object>>> typeRef = new TypeReference<List<Map<String, Object>>>() {};
+            List<Map<String, Object>> originalMilestones = objectMapper.readValue(project.getMilestones(), typeRef);
+            
+            for (Map<String, Object> milestone : originalMilestones) {
+                String dueDateStr = (String) milestone.get("dueDate");
+                if (dueDateStr != null && !dueDateStr.isEmpty()) {
+                    Map<String, Object> ganttMilestone = new HashMap<>();
+                    ganttMilestone.put("id", "milestone_" + milestone.hashCode());
+                    ganttMilestone.put("name", milestone.get("name"));
+                    ganttMilestone.put("description", milestone.get("description"));
+                    ganttMilestone.put("dueDate", dueDateStr);
+                    ganttMilestone.put("status", milestone.get("status"));
+                    ganttMilestone.put("color", getMilestoneColor((String) milestone.get("status")));
+                    milestones.add(ganttMilestone);
+                }
+            }
+            
+            // 按日期排序
+            milestones.sort((a, b) -> {
+                String dateA = (String) a.get("dueDate");
+                String dateB = (String) b.get("dueDate");
+                return dateA.compareTo(dateB);
+            });
+            
+        } catch (Exception e) {
+            log.warn("提取里程碑数据失败: {}", e.getMessage());
+        }
+        
+        return milestones;
+    }
+    
+    /**
+     * 构建任务轨道数据
+     */
+    private List<Map<String, Object>> buildTaskTracks(Long projectId, List<Map<String, Object>> milestones) {
+        List<Map<String, Object>> taskTracks = new ArrayList<>();
+        
+        try {
+            // 获取项目的所有待办任务
+            List<Todo> allTodos = todoService.getCompletedTodosByProject(projectId);
+            
+            // 按模块/类型分组任务
+            Map<String, List<Todo>> todoGroups = groupTodosByCategory(allTodos);
+            
+            // 为每个分组创建任务轨道
+            for (Map.Entry<String, List<Todo>> entry : todoGroups.entrySet()) {
+                Map<String, Object> track = new HashMap<>();
+                track.put("id", "track_" + entry.getKey().hashCode());
+                track.put("name", entry.getKey());
+                track.put("tasks", buildTaskBars(entry.getValue()));
+                track.put("milestoneRelation", findTrackMilestoneRelation(entry.getValue(), milestones));
+                taskTracks.add(track);
+            }
+            
+            // 如果没有足够的任务分组，创建默认轨道
+            if (taskTracks.isEmpty()) {
+                taskTracks.add(createDefaultTrack(allTodos));
+            }
+            
+        } catch (Exception e) {
+            log.warn("构建任务轨道数据失败: {}", e.getMessage());
+        }
+        
+        return taskTracks;
+    }
+    
+    /**
+     * 按类别分组待办任务
+     */
+    private Map<String, List<Todo>> groupTodosByCategory(List<Todo> todos) {
+        Map<String, List<Todo>> groups = new HashMap<>();
+        
+        for (Todo todo : todos) {
+            String category = determineTodoCategory(todo);
+            groups.computeIfAbsent(category, k -> new ArrayList<>()).add(todo);
+        }
+        
+        return groups;
+    }
+    
+    /**
+     * 确定待办任务的类别
+     */
+    private String determineTodoCategory(Todo todo) {
+        String title = todo.getTitle().toLowerCase();
+        String description = todo.getDescription() != null ? todo.getDescription().toLowerCase() : "";
+        
+        // 根据关键词判断类别
+        if (title.contains("前端") || title.contains("ui") || title.contains("页面") || title.contains("界面")) {
+            return "前端开发";
+        } else if (title.contains("后端") || title.contains("api") || title.contains("接口") || title.contains("服务")) {
+            return "后端开发";
+        } else if (title.contains("测试") || title.contains("bug") || title.contains("调试")) {
+            return "测试验证";
+        } else if (title.contains("部署") || title.contains("上线") || title.contains("发布")) {
+            return "部署上线";
+        } else if (title.contains("设计") || title.contains("原型") || title.contains("需求")) {
+            return "需求设计";
+        } else {
+            return "通用任务";
+        }
+    }
+    
+    /**
+     * 构建任务条数据
+     */
+    private List<Map<String, Object>> buildTaskBars(List<Todo> todos) {
+        List<Map<String, Object>> taskBars = new ArrayList<>();
+        
+        // 🚀 批量查询用户信息，避免N+1查询问题
+        Map<Long, User> userCache = batchQueryUsers(todos);
+        
+        for (Todo todo : todos) {
+            Map<String, Object> taskBar = new HashMap<>();
+            taskBar.put("id", "task_" + todo.getId());
+            taskBar.put("title", todo.getTitle());
+            taskBar.put("description", todo.getDescription());
+            taskBar.put("priority", todo.getPriority());
+            taskBar.put("status", todo.getStatus());
+            
+            // 添加处理人信息（从缓存中获取）
+            if (todo.getAssigneeId() != null) {
+                taskBar.put("assigneeId", todo.getAssigneeId());
+                User assignee = userCache.get(todo.getAssigneeId());
+                if (assignee != null) {
+                    Map<String, Object> assigneeInfo = new HashMap<>();
+                    assigneeInfo.put("id", assignee.getId());
+                    assigneeInfo.put("username", assignee.getUsername());
+                    assigneeInfo.put("nickname", assignee.getNickname());
+                    taskBar.put("assignee", assigneeInfo);
+                }
+            }
+            
+            // 时间信息
+            LocalDate startDate = todo.getCreateTime() != null ? todo.getCreateTime().toLocalDate() : LocalDate.now();
+            LocalDate endDate = todo.getDueDate() != null ? todo.getDueDate() : startDate.plusDays(7); // 默认7天
+            LocalDate completeDate = todo.getCompletedTime() != null ? todo.getCompletedTime().toLocalDate() : null;
+            
+            taskBar.put("startDate", startDate.toString());
+            taskBar.put("endDate", endDate.toString());
+            if (completeDate != null) {
+                taskBar.put("completeDate", completeDate.toString());
+            }
+            
+            // 状态和颜色
+            TaskBarStatus barStatus = calculateTaskBarStatus(todo, startDate, endDate, completeDate);
+            taskBar.put("color", barStatus.color);
+            taskBar.put("statusText", barStatus.statusText);
+            taskBar.put("progress", barStatus.progress);
+            
+            if (barStatus.delayDays > 0) {
+                taskBar.put("delayDays", barStatus.delayDays);
+            }
+            
+            taskBars.add(taskBar);
+        }
+        
+        // 按开始时间排序
+        taskBars.sort((a, b) -> {
+            String dateA = (String) a.get("startDate");
+            String dateB = (String) b.get("startDate");
+            return dateA.compareTo(dateB);
+        });
+        
+        return taskBars;
+    }
+    
+    /**
+     * 批量查询用户信息，避免N+1查询问题
+     */
+    private Map<Long, User> batchQueryUsers(List<Todo> todos) {
+        // 收集所有需要查询的用户ID
+        Set<Long> userIds = todos.stream()
+            .filter(todo -> todo.getAssigneeId() != null)
+            .map(Todo::getAssigneeId)
+            .collect(Collectors.toSet());
+        
+        if (userIds.isEmpty()) {
+            return new HashMap<>();
+        }
+        
+        try {
+            // 🎯 一次性批量查询所有用户
+            List<User> users = userMapper.selectBatchIds(userIds);
+            log.info("批量查询{}个不同用户信息", userIds.size());
+            
+            // 转换为Map方便查找
+            return users.stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
+        } catch (Exception e) {
+            log.error("批量查询用户信息失败", e);
+            return new HashMap<>();
+        }
+    }
+
+    /**
+     * 构建任务条（使用预缓存的用户信息）
+     */
+    private List<Map<String, Object>> buildTaskBarsWithCache(List<Todo> todos, Map<Long, User> userCache) {
+        List<Map<String, Object>> taskBars = new ArrayList<>();
+        
+        for (Todo todo : todos) {
+            Map<String, Object> taskBar = new HashMap<>();
+            taskBar.put("id", "task_" + todo.getId());
+            taskBar.put("title", todo.getTitle());
+            taskBar.put("description", todo.getDescription());
+            taskBar.put("priority", todo.getPriority());
+            taskBar.put("status", todo.getStatus());
+            
+            // 添加处理人信息（直接从缓存获取）
+            if (todo.getAssigneeId() != null) {
+                taskBar.put("assigneeId", todo.getAssigneeId());
+                User assignee = userCache.get(todo.getAssigneeId());
+                if (assignee != null) {
+                    Map<String, Object> assigneeInfo = new HashMap<>();
+                    assigneeInfo.put("id", assignee.getId());
+                    assigneeInfo.put("username", assignee.getUsername());
+                    assigneeInfo.put("nickname", assignee.getNickname());
+                    taskBar.put("assignee", assigneeInfo);
+                }
+            }
+            
+            // 时间信息
+            LocalDate startDate = todo.getCreateTime() != null ? todo.getCreateTime().toLocalDate() : LocalDate.now();
+            LocalDate endDate = todo.getDueDate() != null ? todo.getDueDate() : startDate.plusDays(7); // 默认7天
+            LocalDate completeDate = todo.getCompletedTime() != null ? todo.getCompletedTime().toLocalDate() : null;
+            
+            taskBar.put("startDate", startDate.toString());
+            taskBar.put("endDate", endDate.toString());
+            if (completeDate != null) {
+                taskBar.put("completeDate", completeDate.toString());
+            }
+            
+            // 状态和颜色
+            TaskBarStatus barStatus = calculateTaskBarStatus(todo, startDate, endDate, completeDate);
+            taskBar.put("color", barStatus.color);
+            taskBar.put("statusText", barStatus.statusText);
+            taskBar.put("progress", barStatus.progress);
+            
+            if (barStatus.delayDays > 0) {
+                taskBar.put("delayDays", barStatus.delayDays);
+            }
+            
+            taskBars.add(taskBar);
+        }
+        
+        // 按开始时间排序
+        taskBars.sort((a, b) -> {
+            String dateA = (String) a.get("startDate");
+            String dateB = (String) b.get("startDate");
+            return dateA.compareTo(dateB);
+        });
+        
+        return taskBars;
+    }
+
+    /**
+     * 计算任务条状态
+     */
+    private TaskBarStatus calculateTaskBarStatus(Todo todo, LocalDate startDate, LocalDate endDate, LocalDate completeDate) {
+        LocalDate today = LocalDate.now();
+        
+        // 🔧 修复状态判断 - Todo的状态是"DONE"而不是"COMPLETED"
+        if ("DONE".equals(todo.getStatus())) {
+            // 已完成任务的精确状态分类
+            if (completeDate != null && endDate != null) {
+                long delayDays = ChronoUnit.DAYS.between(endDate, completeDate);
+                if (delayDays < 0) {
+                    // 提前完成
+                    return new TaskBarStatus("#00b42a", "提前完成", 100, 0); // 深绿色
+                } else if (delayDays == 0) {
+                    // 按时完成
+                    return new TaskBarStatus("#52c41a", "按时完成", 100, 0); // 绿色
+                } else if (delayDays <= 2) {
+                    // 轻微延期完成
+                    return new TaskBarStatus("#fa8c16", "轻微延期完成", 100, (int) delayDays); // 橙色
+                } else {
+                    // 严重延期完成
+                    return new TaskBarStatus("#f5222d", "延期完成", 100, (int) delayDays); // 红色
+                }
+            } else {
+                // 没有截止日期或完成时间，默认为按时完成
+                return new TaskBarStatus("#52c41a", "已完成", 100, 0);
+            }
+        } else {
+            // 进行中任务的精确状态分类
+            long totalDays = ChronoUnit.DAYS.between(startDate, endDate);
+            long passedDays = ChronoUnit.DAYS.between(startDate, today);
+            
+            int progress;
+            if (totalDays == 0) {
+                // 当天任务的进度计算
+                if (today.equals(startDate)) {
+                    if ("PROGRESS".equals(todo.getStatus())) {
+                        progress = 50; // 进行中显示50%
+                    } else if ("TODO".equals(todo.getStatus())) {
+                        progress = 10; // 待办显示10%（已开始但未完成）
+                    } else {
+                        progress = 0; // 其他状态显示0%
+                    }
+                } else if (today.isAfter(startDate)) {
+                    // 已过期的当天任务
+                    progress = 90; // 显示90%表示应该完成但未完成
+                } else {
+                    // 未来的当天任务
+                    progress = 0;
+                }
+            } else {
+                // 多天任务的正常计算
+                progress = Math.min(100, Math.max(0, (int) (passedDays * 100 / totalDays)));
+            }
+            
+            // 进行中任务的状态分类
+            if (today.isAfter(endDate)) {
+                // 已经逾期的进行中任务
+                long overdueDays = ChronoUnit.DAYS.between(endDate, today);
+                return new TaskBarStatus("#a8071a", "逾期进行", progress, (int) overdueDays); // 深红色
+            } else if (ChronoUnit.DAYS.between(today, endDate) <= 1) {
+                // 即将到期的进行中任务
+                return new TaskBarStatus("#722ed1", "即将到期", progress, 0); // 紫色
+            } else {
+                // 正常进行中的任务
+                return new TaskBarStatus("#1890ff", "正常进行", progress, 0); // 蓝色
+            }
+        }
+    }
+    
+    /**
+     * 查找轨道与里程碑的关系
+     */
+    private List<String> findTrackMilestoneRelation(List<Todo> todos, List<Map<String, Object>> milestones) {
+        List<String> relations = new ArrayList<>();
+        
+        for (Map<String, Object> milestone : milestones) {
+            String milestoneDate = (String) milestone.get("dueDate");
+            LocalDate mDate = LocalDate.parse(milestoneDate);
+            
+            for (Todo todo : todos) {
+                LocalDate todoEnd = todo.getDueDate() != null ? todo.getDueDate() : LocalDate.now();
+                if (Math.abs(ChronoUnit.DAYS.between(mDate, todoEnd)) <= 7) { // 7天内关联
+                    relations.add((String) milestone.get("id"));
+                    break;
+                }
+            }
+        }
+        
+        return relations;
+    }
+    
+    /**
+     * 创建默认任务轨道
+     */
+    private Map<String, Object> createDefaultTrack(List<Todo> todos) {
+        Map<String, Object> track = new HashMap<>();
+        track.put("id", "track_default");
+        track.put("name", "项目任务");
+        track.put("tasks", buildTaskBars(todos));
+        track.put("milestoneRelation", new ArrayList<>());
+        return track;
+    }
+    
+    /**
+     * 构建项目基本信息
+     */
+    private Map<String, Object> buildProjectInfo(Project project) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("id", project.getId());
+        info.put("name", project.getName());
+        info.put("description", project.getDescription());
+        info.put("status", project.getStatus());
+        info.put("progress", project.getProgress());
+        info.put("createTime", project.getCreateTime().toLocalDate().toString());
+        return info;
+    }
+    
+    /**
+     * 获取里程碑颜色
+     */
+    private String getMilestoneColor(String status) {
+        switch (status) {
+            case "COMPLETED": return "#52c41a";
+            case "PROGRESS": return "#1890ff";
+            case "PENDING": return "#8c8c8c";
+            default: return "#8c8c8c";
+        }
+    }
+    
+    /**
+     * 任务条状态内部类
+     */
+    private static class TaskBarStatus {
+        final String color;
+        final String statusText;
+        final int progress;
+        final int delayDays;
+        
+        TaskBarStatus(String color, String statusText, int progress, int delayDays) {
+            this.color = color;
+            this.statusText = statusText;
+            this.progress = progress;
+            this.delayDays = delayDays;
+        }
+    }
+    
+    @Override
+    public Map<String, Object> getUserProjectsGanttData(Long userId) {
+        Map<String, Object> ganttData = new HashMap<>();
+        
+        try {
+            // 1. 获取当前用户相关的所有项目
+            List<Project> userProjects = getProjectListByUser(userId);
+            if (userProjects.isEmpty()) {
+                return ganttData;
+            }
+            
+            // 2. 🚀 一次性批量查询所有项目的待办任务（性能优化关键）
+            List<Long> projectIds = userProjects.stream()
+                .map(Project::getId)
+                .collect(Collectors.toList());
+            Map<Long, List<Todo>> projectTodosMap = todoService.getTodosByProjects(projectIds);
+            log.info("批量查询{}个项目的待办任务，共{}条记录", projectIds.size(), 
+                projectTodosMap.values().stream().mapToInt(List::size).sum());
+            
+            // 3. 计算全局时间范围（使用缓存的待办任务）
+            Map<String, Object> globalTimeRange = calculateGlobalTimeRangeOptimized(userProjects, projectTodosMap);
+            ganttData.put("timeRange", globalTimeRange);
+            
+            // 4. 聚合所有项目的里程碑
+            List<Map<String, Object>> allMilestones = aggregateAllMilestones(userProjects);
+            ganttData.put("milestones", allMilestones);
+            
+            // 5. 构建项目轨道（使用缓存的待办任务）
+            List<Map<String, Object>> projectTracks = buildProjectTracksOptimized(userProjects, allMilestones, projectTodosMap);
+            ganttData.put("taskTracks", projectTracks);
+            
+            // 6. 全局项目信息
+            ganttData.put("projectInfo", buildGlobalProjectInfo(userProjects));
+            
+        } catch (Exception e) {
+            log.error("获取用户全局甘特图数据失败", e);
+        }
+        
+        return ganttData;
+    }
+    
+    /**
+     * 计算全局时间范围（优化版 - 使用缓存的待办任务）
+     */
+    private Map<String, Object> calculateGlobalTimeRangeOptimized(List<Project> projects, Map<Long, List<Todo>> projectTodosMap) {
+        LocalDate earliestDate = LocalDate.now();
+        LocalDate latestDate = LocalDate.now().plusMonths(1);
+        
+        for (Project project : projects) {
+            // 项目创建时间
+            LocalDate projectStart = project.getCreateTime().toLocalDate();
+            if (projectStart.isBefore(earliestDate)) {
+                earliestDate = projectStart;
+            }
+            
+            // 项目里程碑时间
+            if (project.getMilestones() != null && !project.getMilestones().isEmpty()) {
+                try {
+                    TypeReference<List<Map<String, Object>>> typeRef = new TypeReference<List<Map<String, Object>>>() {};
+                    List<Map<String, Object>> milestones = objectMapper.readValue(project.getMilestones(), typeRef);
+                    
+                    for (Map<String, Object> milestone : milestones) {
+                        String dueDateStr = (String) milestone.get("dueDate");
+                        if (dueDateStr != null && !dueDateStr.isEmpty()) {
+                            LocalDate dueDate = LocalDate.parse(dueDateStr);
+                            if (dueDate.isBefore(earliestDate)) {
+                                earliestDate = dueDate;
+                            }
+                            if (dueDate.isAfter(latestDate)) {
+                                latestDate = dueDate;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("解析项目{}里程碑时间失败: {}", project.getId(), e.getMessage());
+                }
+            }
+            
+            // 使用缓存的待办任务计算时间范围
+            List<Todo> projectTodos = projectTodosMap.getOrDefault(project.getId(), new ArrayList<>());
+            for (Todo todo : projectTodos) {
+                if (todo.getCreateTime() != null) {
+                    LocalDate todoStart = todo.getCreateTime().toLocalDate();
+                    if (todoStart.isBefore(earliestDate)) {
+                        earliestDate = todoStart;
+                    }
+                }
+                if (todo.getDueDate() != null) {
+                    LocalDate todoEnd = todo.getDueDate();
+                    if (todoEnd.isAfter(latestDate)) {
+                        latestDate = todoEnd;
+                    }
+                }
+            }
+        }
+        
+        // 确保时间范围至少有3个月
+        if (ChronoUnit.DAYS.between(earliestDate, latestDate) < 90) {
+            latestDate = earliestDate.plusMonths(3);
+        }
+        
+        Map<String, Object> timeRange = new HashMap<>();
+        timeRange.put("startDate", earliestDate.toString());
+        timeRange.put("endDate", latestDate.toString());
+        timeRange.put("totalDays", ChronoUnit.DAYS.between(earliestDate, latestDate));
+        timeRange.put("currentDate", LocalDate.now().toString());
+        
+        return timeRange;
+    }
+    
+    /**
+     * 计算全局时间范围
+     */
+    private Map<String, Object> calculateGlobalTimeRange(List<Project> projects) {
+        LocalDate earliestDate = LocalDate.now();
+        LocalDate latestDate = LocalDate.now().plusMonths(1);
+        
+        for (Project project : projects) {
+            // 项目创建时间
+            LocalDate projectStart = project.getCreateTime().toLocalDate();
+            if (projectStart.isBefore(earliestDate)) {
+                earliestDate = projectStart;
+            }
+            
+            // 项目里程碑时间
+            if (project.getMilestones() != null && !project.getMilestones().isEmpty()) {
+                try {
+                    TypeReference<List<Map<String, Object>>> typeRef = new TypeReference<List<Map<String, Object>>>() {};
+                    List<Map<String, Object>> milestones = objectMapper.readValue(project.getMilestones(), typeRef);
+                    
+                    for (Map<String, Object> milestone : milestones) {
+                        String dueDateStr = (String) milestone.get("dueDate");
+                        if (dueDateStr != null && !dueDateStr.isEmpty()) {
+                            LocalDate dueDate = LocalDate.parse(dueDateStr);
+                            if (dueDate.isBefore(earliestDate)) {
+                                earliestDate = dueDate;
+                            }
+                            if (dueDate.isAfter(latestDate)) {
+                                latestDate = dueDate;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("解析项目{}里程碑时间失败: {}", project.getId(), e.getMessage());
+                }
+            }
+            
+            // 项目待办任务时间
+            try {
+                List<Todo> projectTodos = getAllTodosByProject(project.getId());
+                for (Todo todo : projectTodos) {
+                    if (todo.getCreateTime() != null) {
+                        LocalDate todoStart = todo.getCreateTime().toLocalDate();
+                        if (todoStart.isBefore(earliestDate)) {
+                            earliestDate = todoStart;
+                        }
+                    }
+                    if (todo.getDueDate() != null) {
+                        LocalDate todoEnd = todo.getDueDate();
+                        if (todoEnd.isAfter(latestDate)) {
+                            latestDate = todoEnd;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("获取项目{}待办任务时间失败: {}", project.getId(), e.getMessage());
+            }
+        }
+        
+        // 确保时间范围至少有3个月
+        if (ChronoUnit.DAYS.between(earliestDate, latestDate) < 90) {
+            latestDate = earliestDate.plusMonths(3);
+        }
+        
+        Map<String, Object> timeRange = new HashMap<>();
+        timeRange.put("startDate", earliestDate.toString());
+        timeRange.put("endDate", latestDate.toString());
+        timeRange.put("totalDays", ChronoUnit.DAYS.between(earliestDate, latestDate));
+        timeRange.put("currentDate", LocalDate.now().toString());
+        
+        return timeRange;
+    }
+    
+    /**
+     * 聚合所有项目的里程碑
+     */
+    private List<Map<String, Object>> aggregateAllMilestones(List<Project> projects) {
+        List<Map<String, Object>> allMilestones = new ArrayList<>();
+        
+        for (Project project : projects) {
+            List<Map<String, Object>> projectMilestones = extractMilestonesForGantt(project);
+            for (Map<String, Object> milestone : projectMilestones) {
+                // 添加项目信息到里程碑
+                milestone.put("projectId", project.getId());
+                milestone.put("projectName", project.getName());
+                allMilestones.add(milestone);
+            }
+        }
+        
+        // 按日期排序
+        allMilestones.sort((a, b) -> {
+            String dateA = (String) a.get("dueDate");
+            String dateB = (String) b.get("dueDate");
+            return dateA.compareTo(dateB);
+        });
+        
+        return allMilestones;
+    }
+    
+    /**
+     * 构建项目轨道
+     */
+    private List<Map<String, Object>> buildProjectTracks(List<Project> projects, List<Map<String, Object>> allMilestones) {
+        List<Map<String, Object>> projectTracks = new ArrayList<>();
+        
+        // 按创建时间排序（从远及近）
+        List<Project> sortedProjects = projects.stream()
+            .sorted((a, b) -> a.getCreateTime().compareTo(b.getCreateTime()))
+            .collect(Collectors.toList());
+        
+        for (Project project : sortedProjects) {
+            Map<String, Object> track = new HashMap<>();
+            track.put("id", "project_" + project.getId());
+            track.put("name", "📋 " + project.getName());
+            track.put("projectId", project.getId());
+            track.put("status", project.getStatus());
+            track.put("progress", project.getProgress());
+            
+            // 获取项目的所有待办任务
+            List<Todo> projectTodos = getAllTodosByProject(project.getId());
+            track.put("tasks", buildTaskBars(projectTodos));
+            
+            // 获取项目的里程碑（每个项目轨道包含自己的里程碑）
+            List<Map<String, Object>> projectMilestones = allMilestones.stream()
+                .filter(m -> project.getId().equals(m.get("projectId")))
+                .collect(Collectors.toList());
+            track.put("milestones", projectMilestones);
+            
+            // 关联的里程碑（保留向后兼容性）
+            List<String> relatedMilestones = projectMilestones.stream()
+                .map(m -> (String) m.get("id"))
+                .collect(Collectors.toList());
+            track.put("milestoneRelation", relatedMilestones);
+            
+            projectTracks.add(track);
+        }
+        
+        return projectTracks;
+    }
+
+    /**
+     * 构建项目轨道（优化版 - 使用缓存的待办任务）
+     */
+    private List<Map<String, Object>> buildProjectTracksOptimized(List<Project> projects, 
+            List<Map<String, Object>> allMilestones, Map<Long, List<Todo>> projectTodosMap) {
+        List<Map<String, Object>> projectTracks = new ArrayList<>();
+        
+        // 🚀 预先批量查询所有相关用户信息，进一步优化性能
+        List<Todo> allTodos = projectTodosMap.values().stream()
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+        Map<Long, User> globalUserCache = batchQueryUsers(allTodos);
+        
+        // 按创建时间排序（从远及近）
+        List<Project> sortedProjects = projects.stream()
+            .sorted((a, b) -> a.getCreateTime().compareTo(b.getCreateTime()))
+            .collect(Collectors.toList());
+        
+        for (Project project : sortedProjects) {
+            Map<String, Object> track = new HashMap<>();
+            track.put("id", "project_" + project.getId());
+            track.put("name", "📋 " + project.getName());
+            track.put("projectId", project.getId());
+            track.put("status", project.getStatus());
+            track.put("progress", project.getProgress());
+            
+            // 🚀 直接使用缓存的待办任务，避免重复SQL查询
+            List<Todo> projectTodos = projectTodosMap.getOrDefault(project.getId(), new ArrayList<>());
+            track.put("tasks", buildTaskBarsWithCache(projectTodos, globalUserCache));
+            
+            // 获取项目的里程碑（每个项目轨道包含自己的里程碑）
+            List<Map<String, Object>> projectMilestones = allMilestones.stream()
+                .filter(m -> project.getId().equals(m.get("projectId")))
+                .collect(Collectors.toList());
+            track.put("milestones", projectMilestones);
+            
+            // 关联的里程碑（保留向后兼容性）
+            List<String> relatedMilestones = projectMilestones.stream()
+                .map(m -> (String) m.get("id"))
+                .collect(Collectors.toList());
+            track.put("milestoneRelation", relatedMilestones);
+            
+            projectTracks.add(track);
+        }
+        
+        return projectTracks;
+    }
+    
+    /**
+     * 获取项目的所有待办任务（改进版）
+     */
+    private List<Todo> getAllTodosByProject(Long projectId) {
+        try {
+            // 直接从todoService获取项目的所有待办任务
+            return todoService.getTodosByProject(projectId);
+        } catch (Exception e) {
+            log.warn("获取项目{}的待办任务失败: {}", projectId, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * 构建全局项目信息
+     */
+    private Map<String, Object> buildGlobalProjectInfo(List<Project> projects) {
+        Map<String, Object> info = new HashMap<>();
+        info.put("name", "全局项目甘特图");
+        info.put("description", "当前用户相关的所有项目概览");
+        info.put("totalProjects", projects.size());
+        
+        // 计算整体进度
+        double avgProgress = projects.stream()
+            .mapToInt(Project::getProgress)
+            .average()
+            .orElse(0.0);
+        info.put("progress", (int) avgProgress);
+        
+        // 统计状态
+        Map<String, Long> statusCount = projects.stream()
+            .collect(Collectors.groupingBy(Project::getStatus, Collectors.counting()));
+        info.put("statusCount", statusCount);
+        
+        return info;
     }
 }

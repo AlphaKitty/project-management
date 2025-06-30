@@ -88,4 +88,22 @@
         WHERE create_time &lt; #{beforeTime}
     </delete>
 
+    <!-- 获取项目相关操作日志 -->
+    <select id="selectProjectRelatedLogs" resultType="com.projectmanagement.entity.OperationLog">
+        SELECT 
+            id, user_id, username, operation_type, module, description,
+            request_url, request_method, request_params, response,
+            success, error_message, duration, ip_address, user_agent,
+            operation_time, create_time
+        FROM operation_log
+        WHERE module = 'PROJECT'
+        AND (
+            request_url LIKE CONCAT('%/projects/', #{projectId}, '%')
+            OR request_params LIKE CONCAT('%"id":', #{projectId}, '%')
+            OR request_params LIKE CONCAT('%"projectId":', #{projectId}, '%')
+        )
+        ORDER BY operation_time DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

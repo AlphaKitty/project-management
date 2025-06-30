@@ -1,5 +1,6 @@
 package com.projectmanagement.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.projectmanagement.dto.TodoDTO;
 import com.projectmanagement.entity.Todo;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -331,7 +333,49 @@ public class TodoServiceImpl extends ServiceImpl<TodoMapper, Todo> implements To
 
     @Override
     public List<Todo> getOverdueTasks() {
-        return todoMapper.selectOverdueTasks();
+        QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lt("due_date", LocalDate.now())
+                .in("status", "TODO", "PROGRESS")
+                .orderByAsc("due_date");
+
+        return todoMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<Todo> getCompletedTodosByProject(Long projectId) {
+        QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("project_id", projectId)
+                .eq("status", "COMPLETED")
+                .orderByDesc("update_time");
+
+        return todoMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public List<Todo> getTodosByProject(Long projectId) {
+        QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("project_id", projectId)
+                .orderByDesc("create_time");
+
+        return todoMapper.selectList(queryWrapper);
+    }
+
+    @Override
+    public Map<Long, List<Todo>> getTodosByProjects(List<Long> projectIds) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        // 一次性查询所有项目的待办任务
+        QueryWrapper<Todo> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("project_id", projectIds)
+                .orderByDesc("create_time");
+
+        List<Todo> allTodos = todoMapper.selectList(queryWrapper);
+
+        // 按项目ID分组
+        return allTodos.stream()
+                .collect(Collectors.groupingBy(Todo::getProjectId));
     }
 
     /**

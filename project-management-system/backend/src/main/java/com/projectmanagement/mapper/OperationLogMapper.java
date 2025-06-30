@@ -55,4 +55,9 @@ public interface OperationLogMapper extends BaseMapper<OperationLog> {
          * 删除指定时间之前的日志（用于日志清理）
          */
         int deleteLogsBefore(@Param("beforeTime") LocalDateTime beforeTime);
+
+        /**
+         * 获取项目相关操作日志
+         */
+        List<OperationLog> selectProjectRelatedLogs(@Param("projectId") Long projectId, @Param("limit") Integer limit);
 }

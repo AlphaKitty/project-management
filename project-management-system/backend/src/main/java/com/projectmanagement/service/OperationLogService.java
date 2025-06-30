@@ -48,4 +48,9 @@ public interface OperationLogService {
      * 异步记录操作日志（避免影响主业务）
      */
     void recordLogAsync(OperationLog operationLog);
+
+    /**
+     * 获取项目相关操作日志
+     */
+    List<OperationLog> getProjectRelatedLogs(Long projectId, Integer limit);
 }

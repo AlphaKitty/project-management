@@ -60,4 +60,16 @@ export const projectApi = {
   ): Promise<ApiResponse<string>> {
     return request.delete(`/projects/${projectId}/members/${userId}`);
   },
+
+
+
+  // 获取项目甘特图数据
+  getProjectGantt(projectId: number): Promise<ApiResponse<any>> {
+    return request.get(`/projects/${projectId}/gantt`);
+  },
+
+  // 获取用户全局甘特图数据
+  getUserProjectsGantt(): Promise<ApiResponse<any>> {
+    return request.get('/projects/gantt');
+  },
 };

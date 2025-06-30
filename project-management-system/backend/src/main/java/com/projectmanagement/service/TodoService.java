@@ -5,6 +5,7 @@ import com.projectmanagement.dto.TodoDTO;
 import com.projectmanagement.entity.Todo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 待办任务服务接口
@@ -96,4 +97,19 @@ public interface TodoService extends IService<Todo> {
      * 获取已逾期的任务
      */
     List<Todo> getOverdueTasks();
+
+    /**
+     * 获取项目已完成的待办任务
+     */
+    List<Todo> getCompletedTodosByProject(Long projectId);
+    
+    /**
+     * 获取项目的所有待办任务
+     */
+    List<Todo> getTodosByProject(Long projectId);
+    
+    /**
+     * 批量获取多个项目的所有待办任务
+     */
+    Map<Long, List<Todo>> getTodosByProjects(List<Long> projectIds);
 }

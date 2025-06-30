@@ -10,15 +10,18 @@ import com.projectmanagement.enums.BusinessModule;
 import com.projectmanagement.enums.OperationType;
 import com.projectmanagement.service.ProjectService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 项目管理控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/projects")
 @RequiredArgsConstructor
@@ -173,6 +176,43 @@ public class ProjectController {
             return Result.success("工作计划更新成功");
         } catch (Exception e) {
             return Result.error("工作计划更新失败: " + e.getMessage());
+        }
+    }
+
+
+
+    /**
+     * 获取项目甘特图数据
+     */
+    @GetMapping("/{id}/gantt")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.PROJECT, description = "获取项目甘特图数据")
+    public Result<Map<String, Object>> getProjectGantt(@PathVariable Long id) {
+        try {
+            Map<String, Object> ganttData = projectService.getProjectGanttData(id);
+            return Result.success(ganttData);
+        } catch (Exception e) {
+            log.error("获取项目甘特图数据失败", e);
+            return Result.error("获取甘特图数据失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户相关的所有项目甘特图数据
+     */
+    @GetMapping("/gantt")
+    @OperationLog(type = OperationType.QUERY, module = BusinessModule.PROJECT, description = "获取用户全局甘特图数据")
+    public Result<Map<String, Object>> getUserProjectsGantt(HttpSession session) {
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            return Result.unauthorized();
+        }
+
+        try {
+            Map<String, Object> ganttData = projectService.getUserProjectsGanttData(currentUser.getId());
+            return Result.success(ganttData);
+        } catch (Exception e) {
+            log.error("获取用户甘特图数据失败", e);
+            return Result.error("获取甘特图数据失败：" + e.getMessage());
         }
     }
 }
