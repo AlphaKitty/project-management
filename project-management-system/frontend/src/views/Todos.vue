@@ -110,7 +110,7 @@
 
         <!-- 创建/编辑任务模态框 -->
         <a-modal v-model:visible="modalVisible" :title="isEdit ? '编辑任务' : '新建任务'" @before-ok="handleSubmit"
-            @cancel="handleCancel" :ok-loading="submitting" :ok-button-props="{ disabled: !isFormValid || submitting }">
+            @cancel="handleCancel" :ok-loading="submitting" :ok-button-props="{ disabled: !isFormValid || submitting }" :esc-to-close="true">
             <a-form ref="formRef" :model="formData" :rules="formRules" layout="vertical">
                 <div v-if="!isFormValid && Object.keys(formErrors).length > 0" class="form-error-tip"> <a-alert
                         type="warning" show-icon> <template #title>请完善以下必填信息</template>
@@ -180,7 +180,7 @@
 
         <!-- 查看描述模态框 -->
         <a-modal v-model:visible="descriptionModalVisible" title="任务描述" @cancel="closeDescriptionModal" :footer="false"
-            width="600px">
+            width="600px" :esc-to-close="true">
             <div class="description-modal-content">
                 <div class="description-header">
                     <h3>{{ currentTask?.title }}</h3>
@@ -206,7 +206,7 @@
         </a-modal>
 
         <!-- 发送邮件模态框 --> <a-modal v-model:visible="sendEmailModal" title="发送待办任务邮件" @before-ok="handleSendEmail"
-            @cancel="sendEmailModal = false" width="800px"> <a-form layout="vertical"> <a-form-item label="邮件发送说明">
+            @cancel="sendEmailModal = false" width="800px" :esc-to-close="true"> <a-form layout="vertical"> <a-form-item label="邮件发送说明">
                     <a-alert type="info" show-icon> <template #title>邮件将自动发送给待办任务的责任人</template>
                         系统将根据所选范围内的待办任务，自动向每个任务的责任人发送邮件提醒。
                     </a-alert> </a-form-item> <a-form-item label="发送范围"> <a-radio-group v-model="emailForm.scope"
@@ -238,7 +238,7 @@
 
         <!-- 批量导入模态框 -->
         <a-modal v-model:visible="importModalVisible" title="批量导入任务" @before-ok="handleImport"
-            @cancel="importModalVisible = false" width="800px">
+            @cancel="importModalVisible = false" width="800px" :esc-to-close="true">
             <a-form layout="vertical">
                 <a-form-item label="导入说明">
                     <a-alert type="info" show-icon>
@@ -393,7 +393,7 @@ const formRules = {
 const columns = computed(() => {
     const baseColumns = [
         { title: '任务标题', dataIndex: 'title', key: 'title', slotName: 'title', width: 150 },
-        { title: '描述', dataIndex: 'description', key: 'description', slotName: 'description', width: 120, align: 'center' },
+        { title: '描述', dataIndex: 'description', key: 'description', slotName: 'description', width: 40, align: 'center' },
         { title: '优先级', dataIndex: 'priority', key: 'priority', slotName: 'priority', align: 'center' },
         { title: '状态', dataIndex: 'status', key: 'status', slotName: 'status', align: 'center' },
         { title: '所属项目', dataIndex: 'project', key: 'project', slotName: 'project', width: 200, align: 'center' },

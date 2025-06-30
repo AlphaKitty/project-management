@@ -170,7 +170,7 @@ export interface WorkRecommendation {
   id: string;
   type:
     | "URGENT"
-    | "STAGNANT"
+    // | "STAGNANT" // 项目停滞功能已移除
     | "PROGRESS"
     | "COLLABORATION"
     | "RISK"
@@ -204,7 +204,7 @@ export interface WorkRecommendationSummary {
 // 推荐类型标签映射
 export const RecommendationTypeLabels = {
   URGENT: "紧急推进",
-  STAGNANT: "项目停滞",
+  // STAGNANT: "项目停滞", // 项目停滞功能已移除
   PROGRESS: "项目推进",
   COLLABORATION: "协作待办",
   RISK: "风险预警",
@@ -214,7 +214,7 @@ export const RecommendationTypeLabels = {
 // 推荐类型图标映射
 export const RecommendationTypeIcons = {
   URGENT: "🔥",
-  STAGNANT: "🛑",
+  // STAGNANT: "🛑", // 项目停滞功能已移除
   PROGRESS: "⚡",
   COLLABORATION: "🤝",
   RISK: "⚠️",

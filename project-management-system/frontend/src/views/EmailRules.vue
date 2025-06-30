@@ -152,7 +152,7 @@
 
         <!-- 创建/编辑规则弹窗 -->
         <a-modal v-model:visible="showCreateModal" :title="editingRule ? '编辑规则' : '新建规则'" width="800px"
-            @ok="handleSaveRule" @cancel="handleCancelEdit">
+            @ok="handleSaveRule" @cancel="handleCancelEdit" :esc-to-close="true">
             <a-form :model="ruleForm" layout="vertical">
                 <a-row :gutter="16">
                     <a-col :span="12">
@@ -234,7 +234,7 @@
 
         <!-- 个人偏好设置弹窗 -->
         <a-modal v-model:visible="showPreferencesModal" title="个人邮件偏好设置" width="600px" @ok="handleSavePreferences"
-            @cancel="showPreferencesModal = false">
+            @cancel="showPreferencesModal = false" :esc-to-close="true">
             <a-form :model="preferencesForm" layout="vertical">
                 <a-form-item label="基础设置">
                     <a-space direction="vertical" style="width: 100%">

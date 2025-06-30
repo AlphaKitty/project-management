@@ -60,7 +60,7 @@
 
     <!-- 创建/编辑项目模态框 -->
     <a-modal v-model:visible="modalVisible" :title="isEdit ? '编辑项目' : '新建项目'" @ok="handleSubmit" @cancel="handleCancel"
-      width="900px">
+      width="900px" :esc-to-close="true">
       <a-form :model="formData" layout="vertical">
         <a-form-item label="项目名称" required>
           <a-input v-model="formData.name" placeholder="请输入项目名称" />
@@ -141,7 +141,7 @@
     </a-modal>
 
     <!-- 新增待办模态框 -->
-    <a-modal v-model:visible="todoModalVisible" title="新增待办事项" @ok="handleTodoSubmit" @cancel="handleTodoCancel" width="600px">
+    <a-modal v-model:visible="todoModalVisible" title="新增待办事项" @ok="handleTodoSubmit" @cancel="handleTodoCancel" width="600px" :esc-to-close="true">
       <a-form :model="todoFormData" layout="vertical">
         <a-form-item label="待办标题" required>
           <a-input v-model="todoFormData.title" placeholder="请输入待办标题" />
@@ -188,7 +188,7 @@
     </a-modal>
 
     <!-- 项目概览模态框 -->
-    <a-modal v-model:visible="overviewModalVisible" title="项目概览" width="1800px" :footer="false">
+    <a-modal v-model:visible="overviewModalVisible" title="项目概览" width="1800px" :footer="false" :esc-to-close="true">
       <div class="overview-header">
         <div class="overview-controls">
           <div class="work-update-controls">
@@ -346,7 +346,7 @@
 
 
     <!-- 甘特图模态框 -->
-    <a-modal v-model:visible="ganttModalVisible" title="全局项目甘特图" width="95%" :footer="false">
+    <a-modal v-model:visible="ganttModalVisible" title="全局项目甘特图" width="95%" :footer="false" :esc-to-close="true">
       <div class="gantt-container">
         <div class="gantt-actions">
           <div class="gantt-info">
@@ -385,28 +385,28 @@
                   <h4>状态图例</h4>
                   <div class="legend-items-inline">
                     <div class="legend-item">
+                      <div class="legend-bar" style="background: #00b42a;"></div>
+                      <span>提前完成</span>
+                    </div>
+                    <div class="legend-item">
                       <div class="legend-bar" style="background: #52c41a;"></div>
                       <span>按时完成</span>
+                    </div>
+                    <div class="legend-item">
+                      <div class="legend-bar" style="background: #f5222d;"></div>
+                      <span>延期完成</span>
                     </div>
                     <div class="legend-item">
                       <div class="legend-bar" style="background: #1890ff;"></div>
                       <span>正常进行</span>
                     </div>
                     <div class="legend-item">
-                      <div class="legend-bar" style="background: #fa8c16;"></div>
-                      <span>轻微延期</span>
-                    </div>
-                    <div class="legend-item">
                       <div class="legend-bar" style="background: #722ed1;"></div>
                       <span>即将到期</span>
                     </div>
                     <div class="legend-item">
-                      <div class="legend-bar" style="background: #f5222d;"></div>
-                      <span>严重延期</span>
-                    </div>
-                    <div class="legend-item">
                       <div class="legend-bar" style="background: #a8071a;"></div>
-                      <span>已逾期</span>
+                      <span>逾期进行</span>
                     </div>
                   </div>
                 </div>
@@ -434,7 +434,7 @@
                 </div>
               </div>
               
-                            <!-- 2. 主体内容区域 -->
+              <!-- 2. 主体内容区域 -->
               <div class="gantt-body-area" v-if="ganttData.taskTracks && ganttData.taskTracks.length > 0">
                 <!-- 🔧 左侧固定项目名称列（真正冻结） -->
                 <div class="track-labels-frozen" ref="labelsRef" @scroll="onLabelsScroll">
@@ -975,7 +975,26 @@ const getTaskTooltip = (task: any) => {
     assigneeName = `用户${task.assigneeId}`
   }
   
-  return `${task.title}\n状态: ${task.statusText}\n时间: ${task.startDate} ~ ${task.endDate}\n进度: ${task.progress}%\n处理人: ${assigneeName}`
+  // 构建提示信息
+  let tooltip = `${task.title}\n状态: ${task.statusText}\n时间: ${task.startDate} ~ ${task.endDate}\n进度: ${task.progress}%\n处理人: ${assigneeName}`
+  
+  // 添加描述信息（如果存在）
+  if (task.description && task.description.trim()) {
+    tooltip += `\n描述: ${task.description.trim()}`
+  }
+  
+  // 添加优先级信息（如果存在）
+  if (task.priority) {
+    const priorityMap: Record<string, string> = {
+      'HIGH': '高',
+      'URGENT': '紧急', 
+      'MEDIUM': '中',
+      'LOW': '低'
+    }
+    tooltip += `\n优先级: ${priorityMap[task.priority] || task.priority}`
+  }
+  
+  return tooltip
 }
 
 // 里程碑管理方法

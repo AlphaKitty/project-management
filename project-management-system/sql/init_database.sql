@@ -213,9 +213,9 @@ VALUES (
         'IT部门',
         '系统管理员'
     );
--- 2. 初始化测试用户
+-- 2. 初始化测试用户  
 DELETE FROM `users`
-WHERE `username` IN ('zhang.san', 'li.si', 'wang.wu');
+WHERE `username` IN ('zhang.san', 'li.si', 'wang.wu', 'zhao.liu', 'chen.qi', 'liu.ba', 'yang.jiu', 'huang.shi');
 INSERT INTO `users` (
         `username`,
         `nickname`,
@@ -255,6 +255,56 @@ VALUES (
         1,
         '设计部',
         'UI设计师'
+    ),
+    (
+        'zhao.liu',
+        '赵六',
+        'zhao.liu@projectmanagement.com',
+        '$2a$10$N.ZQRZKm2uMgZ4KtxpI5zOYJtgEGZwfJ5ZwOBTpOgH5E0zKwKLfyC',
+        'USER',
+        1,
+        '开发部',
+        '前端开发工程师'
+    ),
+    (
+        'chen.qi',
+        '陈七',
+        'chen.qi@projectmanagement.com',
+        '$2a$10$N.ZQRZKm2uMgZ4KtxpI5zOYJtgEGZwfJ5ZwOBTpOgH5E0zKwKLfyC',
+        'USER',
+        1,
+        '测试部',
+        '测试工程师'
+    ),
+    (
+        'liu.ba',
+        '刘八',
+        'liu.ba@projectmanagement.com',
+        '$2a$10$N.ZQRZKm2uMgZ4KtxpI5zOYJtgEGZwfJ5ZwOBTpOgH5E0zKwKLfyC',
+        'USER',
+        1,
+        '运营部',
+        '运营专员'
+    ),
+    (
+        'yang.jiu',
+        '杨九',
+        'yang.jiu@projectmanagement.com',
+        '$2a$10$N.ZQRZKm2uMgZ4KtxpI5zOYJtgEGZwfJ5ZwOBTpOgH5E0zKwKLfyC',
+        'USER',
+        1,
+        '市场部',
+        '市场推广专员'
+    ),
+    (
+        'huang.shi',
+        '黄十',
+        'huang.shi@projectmanagement.com',
+        '$2a$10$N.ZQRZKm2uMgZ4KtxpI5zOYJtgEGZwfJ5ZwOBTpOgH5E0zKwKLfyC',
+        'USER',
+        1,
+        '财务部',
+        '财务分析师'
     );
 -- 3. 初始化示例项目
 DELETE FROM `projects`

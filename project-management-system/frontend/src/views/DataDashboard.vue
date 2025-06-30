@@ -530,6 +530,22 @@ const calculateStatistics = () => {
         calculateUserActivityScore(user, days * 2) - calculateUserActivityScore(user, days) > 0
     ).length
 
+    // 计算任务完成率趋势（真实数据）
+    const recentCompletedTodos = todos.filter(t => 
+        t.status === 'DONE' && t.completedTime && new Date(t.completedTime) >= cutoffDate
+    ).length
+    
+    const previousCompletedTodos = todos.filter(t => 
+        t.status === 'DONE' && t.completedTime && 
+        new Date(t.completedTime) >= previousCutoffDate && 
+        new Date(t.completedTime) < cutoffDate
+    ).length
+    
+    // 计算当前期和上一期的完成率
+    const currentPeriodCompletionRate = recentTodos > 0 ? Math.round((recentCompletedTodos / recentTodos) * 100) : 0
+    const previousPeriodCompletionRate = previousTodos > 0 ? Math.round((previousCompletedTodos / previousTodos) * 100) : 0
+    const completionTrend = currentPeriodCompletionRate - previousPeriodCompletionRate
+
     statistics.value = {
         totalProjects,
         activeUsers,
@@ -538,7 +554,7 @@ const calculateStatistics = () => {
         projectTrend: recentProjects - previousProjects,
         userActiveTrend: activeUsers - previousActiveUsers,
         todoTrend: recentTodos - previousTodos,
-        completionTrend: Math.floor(Math.random() * 10) - 5 // 简化处理
+        completionTrend: completionTrend
     }
 }
 
@@ -1083,9 +1099,37 @@ const initSystemCharts = () => {
             return date.toISOString().split('T')[0]
         }).reverse()
 
-        // 模拟操作活跃度数据
-        const operationData = timeLabels.map(() => Math.floor(Math.random() * 50) + 10)
-        const taskData = timeLabels.map(() => Math.floor(Math.random() * 30) + 5)
+        // 计算真实操作活跃度数据
+        const operationData = timeLabels.map(date => {
+            const dayStart = new Date(date)
+            const dayEnd = new Date(date)
+            dayEnd.setDate(dayEnd.getDate() + 1)
+            
+            // 统计该日期的任务创建、更新、完成等操作数
+            const todoOperations = todoStore.todos.filter(todo => {
+                const createTime = new Date(todo.createTime)
+                const updateTime = new Date(todo.updateTime)
+                const completedTime = todo.completedTime ? new Date(todo.completedTime) : null
+                
+                return (createTime >= dayStart && createTime < dayEnd) ||
+                       (updateTime >= dayStart && updateTime < dayEnd) ||
+                       (completedTime && completedTime >= dayStart && completedTime < dayEnd)
+            }).length
+            
+            return todoOperations
+        })
+        
+        const taskData = timeLabels.map(date => {
+            const dayStart = new Date(date)
+            const dayEnd = new Date(date)
+            dayEnd.setDate(dayEnd.getDate() + 1)
+            
+            // 统计该日期创建的任务数量
+            return todoStore.todos.filter(todo => {
+                const createTime = new Date(todo.createTime)
+                return createTime >= dayStart && createTime < dayEnd
+            }).length
+        })
 
         chartInstances['systemActivity'].setOption({
             tooltip: { trigger: 'axis' },
@@ -1121,15 +1165,29 @@ const initSystemCharts = () => {
         }
         chartInstances['taskTrend'] = echarts.init(taskTrendChart.value)
 
-        const taskCreationData = Array.from({ length: Math.min(days, 30) }, () =>
-            Math.floor(Math.random() * 10)
-        )
+        // 计算真实任务创建趋势数据
+        const taskCreationData = Array.from({ length: Math.min(days, 30) }, (_, i) => {
+            const date = new Date()
+            date.setDate(date.getDate() - i)
+            const dayStart = new Date(date.toISOString().split('T')[0])
+            const dayEnd = new Date(dayStart)
+            dayEnd.setDate(dayEnd.getDate() + 1)
+            
+            return todoStore.todos.filter(todo => {
+                const createTime = new Date(todo.createTime)
+                return createTime >= dayStart && createTime < dayEnd
+            }).length
+        }).reverse()
 
         chartInstances['taskTrend'].setOption({
             tooltip: { trigger: 'axis' },
             xAxis: {
                 type: 'category',
-                data: Array.from({ length: taskCreationData.length }, (_, i) => `${i + 1}天前`)
+                data: Array.from({ length: taskCreationData.length }, (_, i) => {
+                    const date = new Date()
+                    date.setDate(date.getDate() - (taskCreationData.length - 1 - i))
+                    return date.toISOString().split('T')[0].substr(5)
+                })
             },
             yAxis: { type: 'value' },
             series: [{

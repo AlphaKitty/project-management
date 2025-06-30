@@ -1259,11 +1259,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project> impl
                 } else if (delayDays == 0) {
                     // 按时完成
                     return new TaskBarStatus("#52c41a", "按时完成", 100, 0); // 绿色
-                } else if (delayDays <= 2) {
-                    // 轻微延期完成
-                    return new TaskBarStatus("#fa8c16", "轻微延期完成", 100, (int) delayDays); // 橙色
                 } else {
-                    // 严重延期完成
+                    // 延期完成（不分轻微和严重，延期就是延期）
                     return new TaskBarStatus("#f5222d", "延期完成", 100, (int) delayDays); // 红色
                 }
             } else {

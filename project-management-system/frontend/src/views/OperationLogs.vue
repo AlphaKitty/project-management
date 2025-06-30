@@ -173,7 +173,7 @@
         </div>
 
         <!-- 详情弹窗 -->
-        <a-modal v-model:visible="detailVisible" title="操作详情" width="800px" :footer="false">
+        <a-modal v-model:visible="detailVisible" title="操作详情" width="800px" :footer="false" :esc-to-close="true">
             <div class="detail-content" v-if="currentLog">
                 <a-descriptions :data="detailData" layout="vertical" :column="2" />
 
@@ -191,7 +191,7 @@
         </a-modal>
 
         <!-- 清理日志确认弹窗 -->
-        <a-modal v-model:visible="cleanVisible" title="清理过期日志" @ok="handleCleanLogs" ok-text="确认清理" cancel-text="取消">
+        <a-modal v-model:visible="cleanVisible" title="清理过期日志" @ok="handleCleanLogs" ok-text="确认清理" cancel-text="取消" :esc-to-close="true">
             <a-form :model="cleanForm" layout="vertical">
                 <a-form-item label="保留天数">
                     <a-input-number v-model="cleanForm.keepDays" :min="1" :max="365" placeholder="请输入保留天数"

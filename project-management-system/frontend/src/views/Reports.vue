@@ -67,7 +67,7 @@
 
     <!-- 生成报告模态框 -->
     <a-modal v-model:visible="generateModalVisible" title="生成项目报告" @ok="handleGenerate"
-      @cancel="generateModalVisible = false">
+      @cancel="generateModalVisible = false" width="600px" :esc-to-close="true">
       <a-form :model="generateForm" layout="vertical">
         <a-form-item label="报告标题" required>
           <a-input v-model="generateForm.title" placeholder="请输入报告标题" />
@@ -118,7 +118,7 @@
     </a-modal>
 
     <!-- 报告详情模态框 -->
-    <a-modal v-model:visible="detailModalVisible" :title="currentReport?.title" :footer="false" :width="800">
+    <a-modal v-model:visible="detailModalVisible" :title="currentReport?.title" :footer="false" :width="800" :esc-to-close="true">
       <div v-if="currentReport" class="report-detail">
         <div class="report-meta">
           <a-descriptions :column="2" bordered>

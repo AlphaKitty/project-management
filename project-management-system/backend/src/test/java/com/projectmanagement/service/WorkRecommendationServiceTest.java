@@ -65,7 +65,7 @@ class WorkRecommendationServiceTest extends BaseTest {
         assertNotNull(result);
         assertTrue(result.getTotalCount() >= 0);
         assertNotNull(result.getUrgent());
-        assertNotNull(result.getStagnant());
+        // assertNotNull(result.getStagnant()); // 项目停滞功能已移除
         assertNotNull(result.getProgress());
         assertNotNull(result.getCollaboration());
         assertNotNull(result.getRisk());
@@ -86,43 +86,44 @@ class WorkRecommendationServiceTest extends BaseTest {
         assertNotNull(result);
         assertEquals(0, result.getTotalCount());
         assertTrue(result.getUrgent().isEmpty());
-        assertTrue(result.getStagnant().isEmpty());
+        // assertTrue(result.getStagnant().isEmpty()); // 项目停滞功能已移除
         assertTrue(result.getProgress().isEmpty());
         assertTrue(result.getCollaboration().isEmpty());
         assertTrue(result.getRisk().isEmpty());
         assertTrue(result.getSuggestions().isEmpty());
     }
 
-    @Test
-    void testGetUserRecommendations_WithStagnantProject() {
-        // 创建停滞项目
-        Project stagnantProject = createTestProject();
-        stagnantProject.setStatus("PROGRESS");
-        stagnantProject.setProgress(30);
-        stagnantProject.setUpdateTime(LocalDateTime.now().minusDays(5));
+    // 项目停滞功能已移除，注释掉相关测试
+    // @Test
+    // void testGetUserRecommendations_WithStagnantProject() {
+    //     // 创建停滞项目
+    //     Project stagnantProject = createTestProject();
+    //     stagnantProject.setStatus("PROGRESS");
+    //     stagnantProject.setProgress(30);
+    //     stagnantProject.setUpdateTime(LocalDateTime.now().minusDays(5));
 
-        // 创建已完成的待办任务
-        Todo completedTodo = createTestTodo();
-        completedTodo.setStatus("DONE");
-        completedTodo.setCompletedTime(LocalDateTime.now().minusDays(4));
+    //     // 创建已完成的待办任务
+    //     Todo completedTodo = createTestTodo();
+    //     completedTodo.setStatus("DONE");
+    //     completedTodo.setCompletedTime(LocalDateTime.now().minusDays(4));
 
-        List<Project> projects = Arrays.asList(stagnantProject);
-        List<Todo> todos = Arrays.asList(completedTodo);
+    //     List<Project> projects = Arrays.asList(stagnantProject);
+    //     List<Todo> todos = Arrays.asList(completedTodo);
 
-        // 模拟服务调用
-        when(projectService.getProjectListByUser(anyLong())).thenReturn(projects);
-        when(todoService.getUserRelatedTodos(anyLong())).thenReturn(todos);
+    //     // 模拟服务调用
+    //     when(projectService.getProjectListByUser(anyLong())).thenReturn(projects);
+    //     when(todoService.getUserRelatedTodos(anyLong())).thenReturn(todos);
 
-        // 执行测试
-        WorkRecommendationDTO.RecommendationSummary result = workRecommendationService
-                .getUserRecommendations(testUser.getId());
+    //     // 执行测试
+    //     WorkRecommendationDTO.RecommendationSummary result = workRecommendationService
+    //             .getUserRecommendations(testUser.getId());
 
-        // 验证结果
-        assertNotNull(result);
-        assertTrue(result.getTotalCount() > 0);
-        // 可能会检测到停滞项目
-        assertNotNull(result.getStagnant());
-    }
+    //     // 验证结果
+    //     assertNotNull(result);
+    //     assertTrue(result.getTotalCount() > 0);
+    //     // 可能会检测到停滞项目
+    //     assertNotNull(result.getStagnant());
+    // }
 
     @Test
     void testExecuteRecommendation_ValidId() {

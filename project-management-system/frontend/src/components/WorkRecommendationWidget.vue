@@ -80,8 +80,8 @@
             </div>
           </div>
 
-          <!-- 项目停滞 -->
-          <div class="recommendation-section" v-if="recommendations.stagnant.length > 0">
+          <!-- 项目停滞功能已移除 -->
+          <!-- <div class="recommendation-section" v-if="recommendations.stagnant.length > 0">
             <div class="section-header">
               <span class="section-icon">🛑</span>
               <span class="section-title">项目停滞</span>
@@ -101,7 +101,7 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div> -->
 
           <!-- 协作推进 -->
           <div class="recommendation-section" v-if="recommendations.collaboration.length > 0">

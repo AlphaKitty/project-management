@@ -57,9 +57,9 @@ public class WorkRecommendationServiceImpl implements WorkRecommendationService 
             risk.addAll(analyzeRiskWarnings(userProjects, userTodos));
             log.info("风险预警分析完成，发现 {} 条", risk.size());
 
-            // 3. 分析项目停滞
-            stagnant.addAll(analyzeStagnantProjects(userProjects, userTodos));
-            log.info("项目停滞分析完成，发现 {} 条", stagnant.size());
+            // 3. 项目停滞分析已移除
+            // stagnant.addAll(analyzeStagnantProjects(userProjects, userTodos));
+            // log.info("项目停滞分析完成，发现 {} 条", stagnant.size());
 
             // 4. 分析项目推进
             progress.addAll(analyzeProgressIssues(userProjects));
@@ -149,27 +149,27 @@ public class WorkRecommendationServiceImpl implements WorkRecommendationService 
     }
 
     /**
-     * 分析项目停滞
+     * 分析项目停滞（已移除）
      */
-    private List<WorkRecommendationDTO.RecommendationItem> analyzeStagnantProjects(List<Project> projects,
-            List<Todo> todos) {
-        List<WorkRecommendationDTO.RecommendationItem> stagnant = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+    // private List<WorkRecommendationDTO.RecommendationItem> analyzeStagnantProjects(List<Project> projects,
+    //         List<Todo> todos) {
+    //     List<WorkRecommendationDTO.RecommendationItem> stagnant = new ArrayList<>();
+    //     LocalDateTime now = LocalDateTime.now();
 
-        for (Project project : projects) {
-            List<Todo> projectTodos = getProjectTodos(todos, project.getId());
+    //     for (Project project : projects) {
+    //         List<Todo> projectTodos = getProjectTodos(todos, project.getId());
 
-            if (isProjectStagnant(project, projectTodos)) {
-                long daysSinceLastActivity = calculateDaysSinceLastActivity(project, projectTodos, now);
+    //         if (isProjectStagnant(project, projectTodos)) {
+    //             long daysSinceLastActivity = calculateDaysSinceLastActivity(project, projectTodos, now);
 
-                if (daysSinceLastActivity >= 3) {
-                    stagnant.add(createStagnantRecommendation(project, daysSinceLastActivity));
-                }
-            }
-        }
+    //             if (daysSinceLastActivity >= 3) {
+    //                 stagnant.add(createStagnantRecommendation(project, daysSinceLastActivity));
+    //             }
+    //         }
+    //     }
 
-        return stagnant;
-    }
+    //     return stagnant;
+    // }
 
     /**
      * 获取指定项目的待办任务
@@ -181,73 +181,73 @@ public class WorkRecommendationServiceImpl implements WorkRecommendationService 
     }
 
     /**
-     * 判断项目是否停滞
+     * 判断项目是否停滞（已移除）
      */
-    private boolean isProjectStagnant(Project project, List<Todo> projectTodos) {
-        boolean isActive = "PROGRESS".equals(project.getStatus());
-        boolean isIncomplete = project.getProgress() < 100;
-        boolean hasNoActiveTodos = projectTodos.stream()
-                .noneMatch(todo -> "TODO".equals(todo.getStatus()) || "PROGRESS".equals(todo.getStatus()));
+    // private boolean isProjectStagnant(Project project, List<Todo> projectTodos) {
+    //     boolean isActive = "PROGRESS".equals(project.getStatus());
+    //     boolean isIncomplete = project.getProgress() < 100;
+    //     boolean hasNoActiveTodos = projectTodos.stream()
+    //             .noneMatch(todo -> "TODO".equals(todo.getStatus()) || "PROGRESS".equals(todo.getStatus()));
 
-        return isActive && isIncomplete && hasNoActiveTodos;
-    }
+    //     return isActive && isIncomplete && hasNoActiveTodos;
+    // }
 
     /**
-     * 计算距离最后活动的天数
+     * 计算距离最后活动的天数（已移除）
      */
-    private long calculateDaysSinceLastActivity(Project project, List<Todo> projectTodos, LocalDateTime now) {
-        // 获取最后完成的待办时间
-        LocalDateTime lastCompletedTime = projectTodos.stream()
-                .filter(todo -> "DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null)
-                .map(Todo::getCompletedTime)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+    // private long calculateDaysSinceLastActivity(Project project, List<Todo> projectTodos, LocalDateTime now) {
+    //     // 获取最后完成的待办时间
+    //     LocalDateTime lastCompletedTime = projectTodos.stream()
+    //             .filter(todo -> "DONE".equals(todo.getStatus()) && todo.getCompletedTime() != null)
+    //             .map(Todo::getCompletedTime)
+    //             .max(LocalDateTime::compareTo)
+    //             .orElse(null);
 
-        // 获取最后创建的待办时间
-        LocalDateTime lastCreatedTime = projectTodos.stream()
-                .map(Todo::getCreateTime)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+    //     // 获取最后创建的待办时间
+    //     LocalDateTime lastCreatedTime = projectTodos.stream()
+    //             .map(Todo::getCreateTime)
+    //             .max(LocalDateTime::compareTo)
+    //             .orElse(null);
 
-        // 获取最后更新的待办时间
-        LocalDateTime lastUpdatedTime = projectTodos.stream()
-                .map(Todo::getUpdateTime)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+    //     // 获取最后更新的待办时间
+    //     LocalDateTime lastUpdatedTime = projectTodos.stream()
+    //             .map(Todo::getUpdateTime)
+    //             .max(LocalDateTime::compareTo)
+    //             .orElse(null);
 
-        // 取最后活动时间的最大值（创建、完成、更新中的最新时间）
-        LocalDateTime lastActivityTime = project.getCreateTime(); // 默认为项目创建时间
+    //     // 取最后活动时间的最大值（创建、完成、更新中的最新时间）
+    //     LocalDateTime lastActivityTime = project.getCreateTime(); // 默认为项目创建时间
         
-        if (lastCompletedTime != null && lastCompletedTime.isAfter(lastActivityTime)) {
-            lastActivityTime = lastCompletedTime;
-        }
-        if (lastCreatedTime != null && lastCreatedTime.isAfter(lastActivityTime)) {
-            lastActivityTime = lastCreatedTime;
-        }
-        if (lastUpdatedTime != null && lastUpdatedTime.isAfter(lastActivityTime)) {
-            lastActivityTime = lastUpdatedTime;
-        }
+    //     if (lastCompletedTime != null && lastCompletedTime.isAfter(lastActivityTime)) {
+    //         lastActivityTime = lastCompletedTime;
+    //     }
+    //     if (lastCreatedTime != null && lastCreatedTime.isAfter(lastActivityTime)) {
+    //         lastActivityTime = lastCreatedTime;
+    //     }
+    //     if (lastUpdatedTime != null && lastUpdatedTime.isAfter(lastActivityTime)) {
+    //         lastActivityTime = lastUpdatedTime;
+    //     }
 
-        return ChronoUnit.DAYS.between(lastActivityTime, now);
-    }
+    //     return ChronoUnit.DAYS.between(lastActivityTime, now);
+    // }
 
     /**
-     * 创建停滞项目推荐项
+     * 创建停滞项目推荐项（已移除）
      */
-    private WorkRecommendationDTO.RecommendationItem createStagnantRecommendation(Project project,
-            long daysSinceLastActivity) {
-        WorkRecommendationDTO.RecommendationItem item = new WorkRecommendationDTO.RecommendationItem();
-        item.setId(UUID.randomUUID().toString());
-        item.setType("STAGNANT");
-        item.setTitle(project.getName() + " - 项目停滞");
-        item.setDescription(String.format("项目已 %d 天无新待办，进度 %d%%，建议创建下一步计划",
-                daysSinceLastActivity, project.getProgress()));
-        item.setProjectId(project.getId());
-        item.setPriority("MEDIUM");
-        item.setActionType("VIEW_PROJECT");
-        item.setCreateTime(LocalDateTime.now());
-        return item;
-    }
+    // private WorkRecommendationDTO.RecommendationItem createStagnantRecommendation(Project project,
+    //         long daysSinceLastActivity) {
+    //     WorkRecommendationDTO.RecommendationItem item = new WorkRecommendationDTO.RecommendationItem();
+    //     item.setId(UUID.randomUUID().toString());
+    //     item.setType("STAGNANT");
+    //     item.setTitle(project.getName() + " - 项目停滞");
+    //     item.setDescription(String.format("项目已 %d 天无新待办，进度 %d%%，建议创建下一步计划",
+    //             daysSinceLastActivity, project.getProgress()));
+    //     item.setProjectId(project.getId());
+    //     item.setPriority("MEDIUM");
+    //     item.setActionType("VIEW_PROJECT");
+    //     item.setCreateTime(LocalDateTime.now());
+    //     return item;
+    // }
 
     /**
      * 分析项目推进问题
